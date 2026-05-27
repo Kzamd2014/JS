@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Job Matches — Kelly Zamboni</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f1f5f9; color: #1e293b; font-size: 14px; }
+
+header { background: #0f172a; color: #f8fafc; padding: 1.25rem 2rem; }
+header h1 { font-size: 1.25rem; font-weight: 600; letter-spacing: -0.01em; }
+header .meta { color: #94a3b8; font-size: 0.8rem; margin-top: 0.2rem; }
+
+.controls { display: flex; gap: 0.75rem; margin-top: 1rem; flex-wrap: wrap; align-items: center; }
+.controls input[type="text"],
+.controls select,
+.controls input[type="number"] {
+  padding: 0.35rem 0.65rem;
+  border: 1px solid #334155;
+  border-radius: 5px;
+  background: #1e293b;
+  color: #f1f5f9;
+  font-size: 0.8rem;
+  outline: none;
+}
+.controls input[type="text"] { width: 220px; }
+.controls input[type="number"] { width: 70px; }
+.controls label { color: #94a3b8; font-size: 0.8rem; display: flex; align-items: center; gap: 0.4rem; }
+
+main { padding: 1.25rem 2rem; }
+.table-wrap { overflow-x: auto; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+
+table { width: 100%; border-collapse: collapse; background: #fff; min-width: 900px; }
+thead { background: #f8fafc; border-bottom: 2px solid #e2e8f0; }
+th {
+  padding: 0.6rem 0.9rem;
+  text-align: left;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #64748b;
+  white-space: nowrap;
+}
+th[data-sort] { cursor: pointer; }
+th[data-sort]:hover { color: #0f172a; }
+th[data-sort]::after { content: ' ↕'; opacity: 0.4; }
+
+td { padding: 0.65rem 0.9rem; border-top: 1px solid #f1f5f9; vertical-align: top; }
+tr:hover td { background: #f8fafc; }
+
+.score-cell { width: 64px; }
+.score {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 42px; height: 42px; border-radius: 50%;
+  font-weight: 700; font-size: 0.85rem; line-height: 1;
+}
+.score-high { background: #dcfce7; color: #15803d; }
+.score-mid  { background: #fef9c3; color: #a16207; }
+.score-low  { background: #fee2e2; color: #b91c1c; }
+
+.job-title { font-weight: 600; }
+.job-title a { color: #2563eb; text-decoration: none; }
+.job-title a:hover { text-decoration: underline; }
+.company-name { color: #64748b; font-size: 0.8rem; margin-top: 0.15rem; }
+
+.badge {
+  display: inline-block; padding: 0.15rem 0.45rem;
+  border-radius: 4px; font-size: 0.72rem; font-weight: 500;
+  margin: 0.1rem 0.1rem 0.1rem 0;
+  white-space: nowrap;
+}
+.badge-default { background: #e2e8f0; color: #475569; }
+.badge-green   { background: #dcfce7; color: #15803d; }
+.badge-red     { background: #fee2e2; color: #b91c1c; }
+.badge-blue    { background: #dbeafe; color: #1d4ed8; }
+
+.rationale { font-size: 0.75rem; color: #64748b; margin-top: 0.25rem; max-width: 260px; line-height: 1.4; }
+.claude-score { font-weight: 600; font-size: 0.9rem; }
+
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Job Matches — Kelly Zamboni</h1>
+  <div class="meta">{{ jobs|length }} jobs &middot; Generated {{ generated_at }}</div>
+  <div class="controls">
+    <input type="text" id="filter-text" placeholder="Filter title or company&hellip;">
+    <select id="filter-site">
+      <option value="">All sites</option>
+      {% for site in sites %}<option value="{{ site }}">{{ site|capitalize }}</option>{% endfor %}
+    </select>
+    <select id="filter-remote">
+      <option value="">Any location</option>
+      <option value="true">Remote / Hybrid</option>
+      <option value="false">Onsite</option>
+    </select>
+    <label>Min score: <input type="number" id="filter-score" value="0" min="-100" max="200"></label>
+  </div>
+</header>
+<main>
+  <div class="table-wrap">
+    <table id="jobs-table">
+      <thead>
+        <tr>
+          <th class="score-cell" data-sort="score">Score</th>
+          <th>Title / Company</th>
+          <th>Location</th>
+          <th data-sort="salary">Salary</th>
+          <th>Site</th>
+          <th>Signals</th>
+          <th data-sort="fit">Claude Fit</th>
+        </tr>
+      </thead>
+      <tbody id="jobs-body">
+      {% for job in jobs %}
+      <tr class="job-row"
+          data-score="{{ job.final_score }}"
+          data-fit="{{ job.claude_score }}"
+          data-salary="{{ job.salary_num }}"
+          data-site="{{ job.site }}"
+          data-remote="{{ 'true' if job.remote else 'false' }}"
+          data-title="{{ job.title|lower }}"
+          data-company="{{ job.company|lower }}">
+        <td class="score-cell">
+          <span class="score score-{{ job.score_class }}">{{ job.final_score }}</span>
+        </td>
+        <td>
+          <div class="job-title">
+            {% if job.url %}<a href="{{ job.url }}" target="_blank" rel="noopener">{{ job.title }}</a>{% else %}{{ job.title }}{% endif %}
+          </div>
+          <div class="company-name">{{ job.company }}</div>
+        </td>
+        <td>
+          {{ job.location }}
+          {% if job.remote %}<br><span class="badge badge-green">Remote/Hybrid</span>{% endif %}
+        </td>
+        <td>{{ job.salary or "—" }}</td>
+        <td><span class="badge badge-default">{{ job.site }}</span></td>
+        <td>
+          {% for sig in job.rule_signals %}
+            <span class="badge {% if sig.startswith('+') %}badge-green{% elif sig.startswith('-') %}badge-red{% else %}badge-blue{% endif %}">{{ sig }}</span>
+          {% else %}
+            <span class="badge badge-default">—</span>
+          {% endfor %}
+        </td>
+        <td>
+          <span class="claude-score">{{ job.claude_score }}/100</span>
+          {% if job.claude_rationale %}
+          <div class="rationale">{{ job.claude_rationale }}</div>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</main>
+<script>
+(function () {
+  const tbody = document.getElementById('jobs-body');
+  let rows = [...tbody.querySelectorAll('.job-row')];
+  let sortCol = 'score', sortAsc = false;
+
+  function applyAll() {
+    const text = document.getElementById('filter-text').value.toLowerCase();
+    const site = document.getElementById('filter-site').value;
+    const remote = document.getElementById('filter-remote').value;
+    const minScore = parseFloat(document.getElementById('filter-score').value) || -Infinity;
+
+    rows.forEach(r => {
+      const visible =
+        (!text || r.dataset.title.includes(text) || r.dataset.company.includes(text)) &&
+        (!site || r.dataset.site === site) &&
+        (!remote || r.dataset.remote === remote) &&
+        parseFloat(r.dataset.score) >= minScore;
+      r.classList.toggle('hidden', !visible);
+    });
+  }
+
+  function sortRows(col) {
+    if (sortCol === col) { sortAsc = !sortAsc; } else { sortCol = col; sortAsc = false; }
+    rows.sort((a, b) => {
+      let va = a.dataset[col], vb = b.dataset[col];
+      if (col !== 'title') { va = parseFloat(va) || 0; vb = parseFloat(vb) || 0; }
+      if (va < vb) return sortAsc ? -1 : 1;
+      if (va > vb) return sortAsc ? 1 : -1;
+      return 0;
+    });
+    rows.forEach(r => tbody.appendChild(r));
+  }
+
+  ['filter-text', 'filter-site', 'filter-remote', 'filter-score'].forEach(id =>
+    document.getElementById(id).addEventListener('input', applyAll)
+  );
+  document.querySelectorAll('th[data-sort]').forEach(th =>
+    th.addEventListener('click', () => sortRows(th.dataset.sort))
+  );
+
+  sortRows('score');
+})();
+</script>
+</body>
+</html>
