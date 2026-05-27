@@ -23,41 +23,45 @@ Scoring guide:
 def _client_instance() -> anthropic.Anthropic:
     global _client
     if _client is None:
+        if not ANTHROPIC_API_KEY:
+            raise RuntimeError("ANTHROPIC_API_KEY is not set. Add it to your .env file.")
         _client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
     return _client
 
 
 def rank_job(job: dict) -> dict:
-    client = _client_instance()
     description = (job.get("description") or job.get("title") or "")[:4000]
 
-    response = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=256,
-        system=[{
-            "type": "text",
-            "text": _SYSTEM,
-            "cache_control": {"type": "ephemeral"},
-        }],
-        messages=[{
-            "role": "user",
-            "content": (
-                f"Job Title: {job.get('title', 'Unknown')}\n"
-                f"Company: {job.get('company', 'Unknown')}\n"
-                f"Location: {job.get('location', '')}\n"
-                f"Salary: {job.get('salary') or 'Not listed'}\n\n"
-                f"Description:\n{description}"
-            ),
-        }],
-    )
-
     try:
+        client = _client_instance()
+        response = client.messages.create(
+            model="claude-sonnet-4-6-20251001",
+            max_tokens=256,
+            system=[{
+                "type": "text",
+                "text": _SYSTEM,
+                "cache_control": {"type": "ephemeral"},
+            }],
+            messages=[{
+                "role": "user",
+                "content": (
+                    f"Job Title: {job.get('title', 'Unknown')}\n"
+                    f"Company: {job.get('company', 'Unknown')}\n"
+                    f"Location: {job.get('location', '')}\n"
+                    f"Salary: {job.get('salary') or 'Not listed'}\n\n"
+                    f"Description:\n{description}"
+                ),
+            }],
+        )
         result = json.loads(response.content[0].text)
         claude_score = max(0, min(100, int(result.get("score", 50))))
         rationale = str(result.get("rationale", ""))
-    except (json.JSONDecodeError, KeyError, ValueError, IndexError):
+    except json.JSONDecodeError:
         claude_score = 50
         rationale = ""
+    except Exception as e:
+        claude_score = 50
+        rationale = f"API error: {e}"
 
     return {
         **job,

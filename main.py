@@ -1,6 +1,7 @@
 import argparse
 import asyncio
 import json
+import re
 from datetime import datetime
 from pathlib import Path
 
@@ -10,6 +11,7 @@ from scrapers.indeed import IndeedScraper
 from scrapers.glassdoor import GlassdoorScraper
 from scrapers.wellfound import WellfoundScraper
 from scrapers.hiringcafe import HiringCafeScraper
+from scrapers.base import dedupe_jobs
 from scorer import score as rule_score
 from ranker import rank_jobs
 from dashboard import generate
@@ -21,17 +23,6 @@ SCRAPERS = {
     "wellfound": WellfoundScraper,
     "hiringcafe": HiringCafeScraper,
 }
-
-
-def _dedupe(jobs: list[dict]) -> list[dict]:
-    seen: set[tuple] = set()
-    result = []
-    for job in jobs:
-        key = (job.get("title", "").lower().strip(), job.get("company", "").lower().strip())
-        if key not in seen:
-            seen.add(key)
-            result.append(job)
-    return result
 
 
 async def _run_scrapers(site: str | None) -> list[dict]:
@@ -53,7 +44,7 @@ async def _run_scrapers(site: str | None) -> list[dict]:
         print(f"  Saved {len(jobs)} jobs → {raw_path}")
         all_jobs.extend(jobs)
 
-    return _dedupe(all_jobs)
+    return dedupe_jobs(all_jobs)
 
 
 def _load_latest_raw() -> list[dict]:
@@ -61,15 +52,18 @@ def _load_latest_raw() -> list[dict]:
     if not raw_files:
         raise FileNotFoundError("No raw scrape files in output/. Run 'python main.py scrape' first.")
 
-    # Group by timestamp suffix and take the most recent set
-    timestamps = sorted({f.stem.rsplit("_", 2)[-2] + "_" + f.stem.rsplit("_", 1)[-1] for f in raw_files})
+    # Extract YYYYMMDD_HHMMSS timestamp from filename using regex
+    ts_pattern = re.compile(r"_(\d{8}_\d{6})$")
+    timestamps = sorted({
+        m.group(1) for f in raw_files if (m := ts_pattern.search(f.stem))
+    })
     latest_ts = timestamps[-1]
-    latest_files = [f for f in raw_files if f.stem.endswith(latest_ts)]
+    latest_files = [f for f in raw_files if ts_pattern.search(f.stem) and ts_pattern.search(f.stem).group(1) == latest_ts]
 
     all_jobs: list[dict] = []
     for f in latest_files:
         all_jobs.extend(json.loads(f.read_text()))
-    return _dedupe(all_jobs)
+    return dedupe_jobs(all_jobs)
 
 
 def cmd_scrape(args):

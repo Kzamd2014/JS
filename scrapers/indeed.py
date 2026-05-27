@@ -44,7 +44,13 @@ class IndeedScraper(BaseScraper):
                     description = ""
                     if title_el:
                         await title_el.click()
-                        await self._delay()
+                        try:
+                            await page.wait_for_selector(
+                                "#jobDescriptionText, .jobsearch-jobDescriptionText",
+                                timeout=5000,
+                            )
+                        except Exception:
+                            pass
                         desc_el = await page.query_selector("#jobDescriptionText, .jobsearch-jobDescriptionText")
                         if desc_el:
                             description = (await desc_el.inner_text()).strip()

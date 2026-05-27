@@ -57,7 +57,13 @@ class GlassdoorScraper(BaseScraper):
                     description = ""
                     if title_el:
                         await card.click()
-                        await self._delay()
+                        try:
+                            await page.wait_for_selector(
+                                ".desc, [data-test='description'], .jobDescriptionContent",
+                                timeout=5000,
+                            )
+                        except Exception:
+                            pass
                         desc_el = await page.query_selector(
                             ".desc, [data-test='description'], .jobDescriptionContent"
                         )

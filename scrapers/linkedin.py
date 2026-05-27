@@ -64,7 +64,13 @@ class LinkedInScraper(BaseScraper):
                     description = ""
                     if link_el:
                         await card.click()
-                        await self._delay()
+                        try:
+                            await page.wait_for_selector(
+                                ".jobs-description__content, .show-more-less-html__markup",
+                                timeout=5000,
+                            )
+                        except Exception:
+                            pass
                         desc_el = await page.query_selector(".jobs-description__content, .show-more-less-html__markup")
                         if desc_el:
                             description = (await desc_el.inner_text()).strip()

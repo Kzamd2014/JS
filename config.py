@@ -5,8 +5,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
-LINKEDIN_COOKIES = os.getenv("LINKEDIN_COOKIES", "[]")
-GLASSDOOR_COOKIES = os.getenv("GLASSDOOR_COOKIES", "[]")
+LINKEDIN_COOKIES = os.getenv("LINKEDIN_COOKIES", "")
+GLASSDOOR_COOKIES = os.getenv("GLASSDOOR_COOKIES", "")
 
 OUTPUT_DIR = Path("output")
 OUTPUT_DIR.mkdir(exist_ok=True)

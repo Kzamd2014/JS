@@ -129,7 +129,7 @@ tr:hover td { background: #f8fafc; }
         </td>
         <td>
           <div class="job-title">
-            {% if job.url %}<a href="{{ job.url }}" target="_blank" rel="noopener">{{ job.title }}</a>{% else %}{{ job.title }}{% endif %}
+            {% if job.url and (job.url.startswith('http://') or job.url.startswith('https://')) %}<a href="{{ job.url }}" target="_blank" rel="noopener">{{ job.title }}</a>{% else %}{{ job.title }}{% endif %}
           </div>
           <div class="company-name">{{ job.company }}</div>
         </td>

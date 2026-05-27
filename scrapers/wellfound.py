@@ -25,7 +25,6 @@ class WellfoundScraper(BaseScraper):
             await page.goto(url, wait_until="domcontentloaded", timeout=30000)
             await self._delay()
 
-            # Wellfound is React-heavy; wait for job cards to render
             try:
                 await page.wait_for_selector("[data-test='JobSearchResult'], .styles_component__", timeout=10000)
             except Exception:
@@ -35,50 +34,50 @@ class WellfoundScraper(BaseScraper):
             if not cards:
                 cards = await page.query_selector_all("div[class*='JobSearchResult']")
 
-            for card in cards[:20]:
-                try:
-                    title_el = await card.query_selector("a[class*='jobTitle'], h2 a, [data-test='job-title']")
-                    company_el = await card.query_selector("a[class*='companyName'], [data-test='company-name']")
-                    location_el = await card.query_selector("[class*='location'], [data-test='job-location']")
-                    salary_el = await card.query_selector("[class*='salary'], [data-test='job-salary']")
+            # Reuse a single detail page for all cards to avoid opening 20+ tabs
+            detail_page = await context.new_page()
+            try:
+                for card in cards[:15]:
+                    try:
+                        title_el = await card.query_selector("a[class*='jobTitle'], h2 a, [data-test='job-title']")
+                        company_el = await card.query_selector("a[class*='companyName'], [data-test='company-name']")
+                        location_el = await card.query_selector("[class*='location'], [data-test='job-location']")
+                        salary_el = await card.query_selector("[class*='salary'], [data-test='job-salary']")
 
-                    job_title = (await title_el.inner_text()).strip() if title_el else ""
-                    company = (await company_el.inner_text()).strip() if company_el else ""
-                    job_location = (await location_el.inner_text()).strip() if location_el else ""
-                    salary = (await salary_el.inner_text()).strip() if salary_el else None
+                        job_title = (await title_el.inner_text()).strip() if title_el else ""
+                        company = (await company_el.inner_text()).strip() if company_el else ""
+                        job_location = (await location_el.inner_text()).strip() if location_el else ""
+                        salary = (await salary_el.inner_text()).strip() if salary_el else None
 
-                    href = await title_el.get_attribute("href") if title_el else ""
-                    job_url = ("https://wellfound.com" + href) if href and href.startswith("/") else href or ""
+                        href = await title_el.get_attribute("href") if title_el else ""
+                        job_url = ("https://wellfound.com" + href) if href and href.startswith("/") else href or ""
 
-                    # Load description from job detail page
-                    description = ""
-                    if job_url:
-                        detail = await context.new_page()
-                        try:
-                            await detail.goto(job_url, wait_until="domcontentloaded", timeout=20000)
+                        description = ""
+                        if job_url:
+                            await detail_page.goto(job_url, wait_until="domcontentloaded", timeout=20000)
                             await self._delay()
-                            desc_el = await detail.query_selector(
+                            desc_el = await detail_page.query_selector(
                                 "[data-test='job-description'], .styles_description__, [class*='jobDescription']"
                             )
                             if desc_el:
                                 description = (await desc_el.inner_text()).strip()
-                        finally:
-                            await detail.close()
 
-                    remote = is_remote or "remote" in job_location.lower() or "hybrid" in job_location.lower()
+                        remote = is_remote or "remote" in job_location.lower() or "hybrid" in job_location.lower()
 
-                    if job_title and company:
-                        jobs.append(self._job(
-                            title=job_title,
-                            company=company,
-                            location=job_location or location,
-                            url=job_url,
-                            description=description,
-                            remote=remote,
-                            salary=salary,
-                        ))
-                except Exception:
-                    continue
+                        if job_title and company:
+                            jobs.append(self._job(
+                                title=job_title,
+                                company=company,
+                                location=job_location or location,
+                                url=job_url,
+                                description=description,
+                                remote=remote,
+                                salary=salary,
+                            ))
+                    except Exception:
+                        continue
+            finally:
+                await detail_page.close()
         finally:
             await page.close()
 
