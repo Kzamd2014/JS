@@ -44,7 +44,10 @@ class LinkedInScraper(BaseScraper):
                 print(f"  [linkedin] Not authenticated — set LINKEDIN_COOKIES in .env")
                 return []
 
-            await page.wait_for_selector(".jobs-search-results__list-item, .base-card", timeout=10000)
+            try:
+                await page.wait_for_selector(".jobs-search-results__list-item, .base-card", timeout=10000)
+            except Exception:
+                return []  # No results for this query
 
             cards = await page.query_selector_all(".jobs-search-results__list-item, .base-card")
             for card in cards[:20]:
@@ -60,18 +63,36 @@ class LinkedInScraper(BaseScraper):
                     href = await link_el.get_attribute("href") if link_el else ""
                     job_url = href.split("?")[0] if href else ""
 
-                    # Click card to load description in side panel
+                    # Click card to load description in side panel, wait for new content
                     description = ""
                     if link_el:
+                        prev_text = ""
+                        try:
+                            prev_el = await page.query_selector(
+                                ".jobs-description__content, .show-more-less-html__markup"
+                            )
+                            if prev_el:
+                                prev_text = await prev_el.inner_text()
+                        except Exception:
+                            pass
+
                         await card.click()
                         try:
-                            await page.wait_for_selector(
-                                ".jobs-description__content, .show-more-less-html__markup",
+                            await page.wait_for_function(
+                                """(prev) => {
+                                    const el = document.querySelector(
+                                        '.jobs-description__content, .show-more-less-html__markup'
+                                    );
+                                    return el && el.innerText.trim() !== prev.trim() && el.innerText.trim().length > 0;
+                                }""",
+                                arg=prev_text,
                                 timeout=5000,
                             )
                         except Exception:
                             pass
-                        desc_el = await page.query_selector(".jobs-description__content, .show-more-less-html__markup")
+                        desc_el = await page.query_selector(
+                            ".jobs-description__content, .show-more-less-html__markup"
+                        )
                         if desc_el:
                             description = (await desc_el.inner_text()).strip()
 
@@ -86,7 +107,8 @@ class LinkedInScraper(BaseScraper):
                             description=description,
                             remote=remote,
                         ))
-                except Exception:
+                except Exception as e:
+                    print(f"  [linkedin] Card error ({type(e).__name__}): {e}")
                     continue
         finally:
             await page.close()

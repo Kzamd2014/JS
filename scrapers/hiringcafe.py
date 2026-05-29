@@ -57,10 +57,10 @@ class HiringCafeScraper(BaseScraper):
                             await detail_page.goto(job_url, wait_until="domcontentloaded", timeout=20000)
                             await self._delay()
                             desc_el = await detail_page.query_selector(
-                                "[class*='description'], [class*='jobDescription'], main"
+                                "[class*='description'], [class*='jobDescription']"
                             )
                             if desc_el:
-                                description = (await desc_el.inner_text()).strip()
+                                description = (await desc_el.inner_text()).strip()[:5000]
 
                         remote = is_remote or "remote" in job_location.lower() or "hybrid" in job_location.lower()
 
@@ -74,7 +74,8 @@ class HiringCafeScraper(BaseScraper):
                                 remote=remote,
                                 salary=salary,
                             ))
-                    except Exception:
+                    except Exception as e:
+                        print(f"  [hiringcafe] Card error ({type(e).__name__}): {e}")
                         continue
             finally:
                 await detail_page.close()

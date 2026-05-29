@@ -1,6 +1,7 @@
 import argparse
 import asyncio
 import json
+import os
 import re
 from datetime import datetime
 from pathlib import Path
@@ -15,6 +16,12 @@ from scrapers.base import dedupe_jobs
 from scorer import score as rule_score
 from ranker import rank_jobs
 from dashboard import generate
+
+def _atomic_write(path: Path, content: str) -> None:
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text(content, encoding="utf-8")
+    os.replace(tmp, path)
+
 
 SCRAPERS = {
     "linkedin": LinkedInScraper,
@@ -40,7 +47,7 @@ async def _run_scrapers(site: str | None) -> list[dict]:
             jobs = []
 
         raw_path = OUTPUT_DIR / f"raw_{name}_{ts}.json"
-        raw_path.write_text(json.dumps(jobs, indent=2))
+        _atomic_write(raw_path, json.dumps(jobs, indent=2))
         print(f"  Saved {len(jobs)} jobs → {raw_path}")
         all_jobs.extend(jobs)
 
@@ -62,7 +69,10 @@ def _load_latest_raw() -> list[dict]:
 
     all_jobs: list[dict] = []
     for f in latest_files:
-        all_jobs.extend(json.loads(f.read_text()))
+        try:
+            all_jobs.extend(json.loads(f.read_text(encoding="utf-8")))
+        except (json.JSONDecodeError, UnicodeDecodeError) as e:
+            print(f"  Warning: skipping corrupt file {f.name}: {e}")
     return dedupe_jobs(all_jobs)
 
 
@@ -80,7 +90,7 @@ def cmd_rank(args):
     ranked = rank_jobs(jobs)
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     ranked_path = OUTPUT_DIR / f"ranked_{ts}.json"
-    ranked_path.write_text(json.dumps(ranked, indent=2))
+    _atomic_write(ranked_path, json.dumps(ranked, indent=2))
     print(f"Saved ranked results → {ranked_path}")
     generate(ranked, OUTPUT_DIR / "dashboard.html")
 
@@ -92,7 +102,7 @@ def cmd_run(args):
     print(f"Calling Claude API ({len(jobs)} jobs)...")
     ranked = rank_jobs(jobs)
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    (OUTPUT_DIR / f"ranked_{ts}.json").write_text(json.dumps(ranked, indent=2))
+    _atomic_write(OUTPUT_DIR / f"ranked_{ts}.json", json.dumps(ranked, indent=2))
     generate(ranked, OUTPUT_DIR / "dashboard.html")
     print(f"\nDone. Open output/dashboard.html in your browser.")
 

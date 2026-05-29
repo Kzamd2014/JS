@@ -1,8 +1,14 @@
 import re
 
+# Keywords that indicate a dollar amount is NOT a salary figure
+_NON_SALARY = re.compile(
+    r'\b(bonus|401\s*k|match|sign[\s-]on|equity|stock\s+option|referral|relocation)\b',
+    re.IGNORECASE,
+)
+
 
 def _parse_salary_min(salary: str | None) -> int | None:
-    """Extract minimum annual salary. Only parses $-anchored numbers to avoid false positives."""
+    """Extract minimum annual salary. Rejects bonus/perk dollar amounts and implausibly small values."""
     if not salary:
         return None
     cleaned = salary.replace(",", "")
@@ -12,6 +18,10 @@ def _parse_salary_min(salary: str | None) -> int | None:
     )
     values = []
     for m in pattern.finditer(cleaned):
+        # Skip if followed by non-salary keywords (bonus, 401k, equity, etc.)
+        trailing = cleaned[m.end():m.end() + 40]
+        if _NON_SALARY.search(trailing):
+            continue
         val = float(m.group(1))
         suffix = (m.group(2) or "").lower().replace(" ", "")
         if "k" in suffix:
@@ -20,6 +30,9 @@ def _parse_salary_min(salary: str | None) -> int | None:
             val *= 2080
         elif val < 1000:
             # Small number with no unit context — skip (avoids "$7 days ago"-style misreads)
+            continue
+        # Reject implausibly small annual figures that slipped past the unit check
+        if val < 15000:
             continue
         values.append(int(val))
     return min(values) if values else None
@@ -32,6 +45,7 @@ def _text(job: dict) -> str:
 def score(job: dict) -> dict:
     text = _text(job)
     title = job.get("title", "").lower()
+    has_description = bool(job.get("description", "").strip())
     points = 0
     signals: list[str] = []
 
@@ -106,17 +120,19 @@ def score(job: dict) -> dict:
         r'\bhris\b', r'benefits\s+administration', r'\bpayroll\b',
         r'talent\s+acquisition', r'\brecruiting\b', r'hr\s+business\s+partner',
         r'\bhrbp\b', r'compensation\s+and\s+benefits', r'employee\s+relations',
+        r'\bhr\s+generalist\b', r'human\s+resources\s+generalist',
+        r'\bhr\s+coordinator\b',
     ]
     if (any(re.search(p, text) for p in hr_generic_patterns)
             and not any(re.search(p, text) for p in elearn_patterns)):
         points -= 20
         signals.append("-20 HR generalist (no L&D focus)")
 
+    # Travel: only match patterns where % is explicit to avoid false positives on years/numbers
     travel_pct = None
     for pat in [
         r'(\d+)\s*%\s*(?:travel|traveling)',
         r'travel\s+(?:up\s+to\s+|approximately\s+|about\s+)?(\d+)\s*%',
-        r'(\d+)\s*%?\s*(?:travel|traveling|on\s+the\s+road)',
     ]:
         m = re.search(pat, text)
         if m:
@@ -129,23 +145,29 @@ def score(job: dict) -> dict:
     entry_patterns = [
         r'entry[\s-]level', r'\bjunior\b', r'\btrainee\b', r'\bintern\b',
         r'new\s+grad(?:uate)?', r'level\s*[i1]\b', r'associate\s+level',
+        r'\bi$',  # title ending in standalone "I" (e.g. "Instructional Designer I")
     ]
     if any(re.search(p, title) for p in entry_patterns):
         points -= 15
         signals.append("-15 Entry-level / junior title")
 
-    if not any(re.search(p, text) for p in elearn_patterns):
-        points -= 10
-        signals.append("-10 No eLearning or ID tools mentioned")
+    # Suppress eLearning and onsite penalties when description is missing — no data to judge
+    if not has_description:
+        signals.append("(skip) No description — eLearning/onsite penalties suppressed")
+    else:
+        if not any(re.search(p, text) for p in elearn_patterns):
+            points -= 10
+            signals.append("-10 No eLearning or ID tools mentioned")
 
-    onsite_patterns = [
-        r'on[\s-]?site\s+only', r'onsite\s+only', r'fully\s+in[\s-]office',
-        r'100\s*%\s*on[\s-]?site', r'no\s+remote\s+work', r'must\s+be\s+on[\s-]?site',
-        r'this\s+(?:role\s+)?is\s+(?:fully\s+)?in[\s-]office',
-        r'office[\s-]based\s+only', r'required\s+(?:to\s+be\s+)?(?:on[\s-]?site|in[\s-]office)',
-    ]
-    if not job.get("remote", False) and any(re.search(p, text) for p in onsite_patterns):
-        points -= 5
-        signals.append("-5 Fully onsite")
+        onsite_patterns = [
+            r'on[\s-]?site\s+only', r'onsite\s+only', r'fully\s+in[\s-]office',
+            r'100\s*%\s*on[\s-]?site', r'no\s+remote\s+work', r'must\s+be\s+on[\s-]?site',
+            r'this\s+(?:role\s+)?is\s+(?:an?\s+)?(?:fully\s+)?in[\s-]office',
+            r'office[\s-]based\s+only', r'required\s+(?:to\s+be\s+)?(?:on[\s-]?site|in[\s-]office)',
+            r'in[\s-]office\s+(?:position|role|job)',
+        ]
+        if not job.get("remote", False) and any(re.search(p, text) for p in onsite_patterns):
+            points -= 5
+            signals.append("-5 Fully onsite")
 
     return {**job, "rule_score": points, "rule_signals": signals}

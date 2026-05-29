@@ -5,6 +5,8 @@ from scrapers.base import BaseScraper
 # Remote filter token used by Indeed's URL
 _REMOTE_TOKEN = "032b3046-06a3-4876-8dfd-474eb5e7ed11"
 
+_CHALLENGE_KEYWORDS = ("robot", "captcha", "human verification", "access denied", "blocked")
+
 
 class IndeedScraper(BaseScraper):
     site_name = "indeed"
@@ -24,6 +26,12 @@ class IndeedScraper(BaseScraper):
             await page.goto(url, wait_until="domcontentloaded", timeout=30000)
             await self._delay()
 
+            # Detect bot challenge pages before iterating
+            page_title = (await page.title()).lower()
+            if any(kw in page_title for kw in _CHALLENGE_KEYWORDS):
+                print(f"  [indeed] Bot challenge detected for '{title}' — skipping")
+                return []
+
             cards = await page.query_selector_all("[data-testid='slider_item'], .job_seen_beacon")
             for card in cards[:20]:
                 try:
@@ -40,18 +48,36 @@ class IndeedScraper(BaseScraper):
                     href = await title_el.get_attribute("href") if title_el else ""
                     job_url = "https://www.indeed.com" + href if href and href.startswith("/") else href or ""
 
-                    # Load full description
+                    # Load full description, wait for panel to update to this job's content
                     description = ""
                     if title_el:
+                        prev_text = ""
+                        try:
+                            prev_el = await page.query_selector(
+                                "#jobDescriptionText, .jobsearch-jobDescriptionText"
+                            )
+                            if prev_el:
+                                prev_text = await prev_el.inner_text()
+                        except Exception:
+                            pass
+
                         await title_el.click()
                         try:
-                            await page.wait_for_selector(
-                                "#jobDescriptionText, .jobsearch-jobDescriptionText",
+                            await page.wait_for_function(
+                                """(prev) => {
+                                    const el = document.querySelector(
+                                        '#jobDescriptionText, .jobsearch-jobDescriptionText'
+                                    );
+                                    return el && el.innerText.trim() !== prev.trim() && el.innerText.trim().length > 0;
+                                }""",
+                                arg=prev_text,
                                 timeout=5000,
                             )
                         except Exception:
                             pass
-                        desc_el = await page.query_selector("#jobDescriptionText, .jobsearch-jobDescriptionText")
+                        desc_el = await page.query_selector(
+                            "#jobDescriptionText, .jobsearch-jobDescriptionText"
+                        )
                         if desc_el:
                             description = (await desc_el.inner_text()).strip()
 
@@ -67,7 +93,8 @@ class IndeedScraper(BaseScraper):
                             remote=remote,
                             salary=salary,
                         ))
-                except Exception:
+                except Exception as e:
+                    print(f"  [indeed] Card error ({type(e).__name__}): {e}")
                     continue
         finally:
             await page.close()

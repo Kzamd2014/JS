@@ -25,17 +25,18 @@ def _client_instance() -> anthropic.Anthropic:
     if _client is None:
         if not ANTHROPIC_API_KEY:
             raise RuntimeError("ANTHROPIC_API_KEY is not set. Add it to your .env file.")
-        _client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+        _client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY, timeout=30.0)
     return _client
 
 
 def rank_job(job: dict) -> dict:
     description = (job.get("description") or job.get("title") or "")[:4000]
+    api_failed = False
 
     try:
         client = _client_instance()
         response = client.messages.create(
-            model="claude-sonnet-4-6-20251001",
+            model="claude-sonnet-4-6",
             max_tokens=256,
             system=[{
                 "type": "text",
@@ -56,17 +57,22 @@ def rank_job(job: dict) -> dict:
         result = json.loads(response.content[0].text)
         claude_score = max(0, min(100, int(result.get("score", 50))))
         rationale = str(result.get("rationale", ""))
-    except json.JSONDecodeError:
+    except json.JSONDecodeError as e:
+        print(f"  WARNING: JSON parse error for '{job.get('title')}': {e}")
         claude_score = 50
-        rationale = ""
+        rationale = "parse error"
+        api_failed = True
     except Exception as e:
+        print(f"  WARNING: API error for '{job.get('title')}': {e}")
         claude_score = 50
         rationale = f"API error: {e}"
+        api_failed = True
 
     return {
         **job,
         "claude_score": claude_score,
         "claude_rationale": rationale,
+        "claude_api_failed": api_failed,
         "final_score": claude_score + job.get("rule_score", 0),
     }
 
@@ -76,4 +82,11 @@ def rank_jobs(jobs: list[dict]) -> list[dict]:
     for i, job in enumerate(jobs, 1):
         print(f"  Ranking {i}/{len(jobs)}: {job.get('title')} @ {job.get('company')}")
         ranked.append(rank_job(job))
+
+    failures = sum(1 for j in ranked if j.get("claude_api_failed"))
+    if failures:
+        print(f"\n  WARNING: {failures}/{len(ranked)} Claude API calls failed — semantic scores unreliable.")
+        if failures == len(ranked):
+            print("  All calls failed — check ANTHROPIC_API_KEY and model ID in .env.")
+
     return sorted(ranked, key=lambda j: j["final_score"], reverse=True)

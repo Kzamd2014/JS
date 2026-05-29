@@ -12,8 +12,9 @@ USER_AGENT = (
 
 
 def dedupe_jobs(jobs: list[dict]) -> list[dict]:
-    """Deduplicate by (title, company, location) — keeps same role at different locations separate."""
-    seen: set[tuple] = set()
+    """Deduplicate by (title, company, location). When the same job appears from multiple
+    sites, keep the version with the longer description so scoring has more signal."""
+    seen: dict[tuple, int] = {}  # key → index in result
     result = []
     for job in jobs:
         key = (
@@ -22,8 +23,12 @@ def dedupe_jobs(jobs: list[dict]) -> list[dict]:
             job.get("location", "").lower().strip(),
         )
         if key not in seen:
-            seen.add(key)
+            seen[key] = len(result)
             result.append(job)
+        else:
+            idx = seen[key]
+            if len(job.get("description", "")) > len(result[idx].get("description", "")):
+                result[idx] = job
     return result
 
 

@@ -74,7 +74,8 @@ class WellfoundScraper(BaseScraper):
                                 remote=remote,
                                 salary=salary,
                             ))
-                    except Exception:
+                    except Exception as e:
+                        print(f"  [wellfound] Card error ({type(e).__name__}): {e}")
                         continue
             finally:
                 await detail_page.close()

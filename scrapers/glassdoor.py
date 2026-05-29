@@ -18,7 +18,7 @@ class GlassdoorScraper(BaseScraper):
         is_remote = location.lower() == "remote"
         encoded_title = urllib.parse.quote(title)
         if is_remote:
-            url = f"https://www.glassdoor.com/Job/remote-{encoded_title.lower().replace('%20', '-')}-jobs-SRCH_IL.0,6_IS11047_KO7,{7 + len(title)}.htm"
+            url = f"https://www.glassdoor.com/Job/jobs.htm?sc.keyword={encoded_title}&remoteWorkType=1"
         else:
             url = f"https://www.glassdoor.com/Job/jobs.htm?sc.keyword={encoded_title}&locT=C&locKeyword={urllib.parse.quote(location)}"
 
@@ -82,7 +82,8 @@ class GlassdoorScraper(BaseScraper):
                             remote=remote,
                             salary=salary,
                         ))
-                except Exception:
+                except Exception as e:
+                    print(f"  [glassdoor] Card error ({type(e).__name__}): {e}")
                     continue
         finally:
             await page.close()
