@@ -1,6 +1,6 @@
 import urllib.parse
 from playwright.async_api import BrowserContext
-from scrapers.base import BaseScraper
+from scrapers.base import BaseScraper, MAX_CARDS_PER_QUERY, _infer_remote
 
 # Remote filter token used by Indeed's URL
 _REMOTE_TOKEN = "032b3046-06a3-4876-8dfd-474eb5e7ed11"
@@ -33,7 +33,7 @@ class IndeedScraper(BaseScraper):
                 return []
 
             cards = await page.query_selector_all("[data-testid='slider_item'], .job_seen_beacon")
-            for card in cards[:20]:
+            for card in cards[:MAX_CARDS_PER_QUERY]:
                 try:
                     title_el = await card.query_selector("h2.jobTitle a, [data-testid='jobTitle']")
                     company_el = await card.query_selector("[data-testid='company-name']")
@@ -81,7 +81,7 @@ class IndeedScraper(BaseScraper):
                         if desc_el:
                             description = (await desc_el.inner_text()).strip()
 
-                    remote = is_remote or "remote" in job_location.lower() or "hybrid" in job_location.lower()
+                    remote = _infer_remote(job_location, is_remote)
 
                     if job_title and company:
                         jobs.append(self._job(

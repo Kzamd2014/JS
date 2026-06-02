@@ -4,7 +4,7 @@ No login required. Startup/tech-heavy, good source for remote roles.
 """
 import urllib.parse
 from playwright.async_api import BrowserContext
-from scrapers.base import BaseScraper
+from scrapers.base import BaseScraper, MAX_CARDS_PER_QUERY, _infer_remote
 
 
 class WellfoundScraper(BaseScraper):
@@ -37,7 +37,7 @@ class WellfoundScraper(BaseScraper):
             # Reuse a single detail page for all cards to avoid opening 20+ tabs
             detail_page = await context.new_page()
             try:
-                for card in cards[:15]:
+                for card in cards[:MAX_CARDS_PER_QUERY]:
                     try:
                         title_el = await card.query_selector("a[class*='jobTitle'], h2 a, [data-test='job-title']")
                         company_el = await card.query_selector("a[class*='companyName'], [data-test='company-name']")
@@ -62,7 +62,7 @@ class WellfoundScraper(BaseScraper):
                             if desc_el:
                                 description = (await desc_el.inner_text()).strip()
 
-                        remote = is_remote or "remote" in job_location.lower() or "hybrid" in job_location.lower()
+                        remote = _infer_remote(job_location, is_remote)
 
                         if job_title and company:
                             jobs.append(self._job(
