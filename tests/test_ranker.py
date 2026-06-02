@@ -55,7 +55,7 @@ def test_rank_job_api_error_returns_fallback():
         mock_client.return_value.messages.create.side_effect = Exception("rate limit")
         result = rank_job(_job(rule_score=10))
     assert result["claude_score"] == 50
-    assert "rate limit" in result["claude_rationale"]
+    assert result["claude_rationale"] == "API error"
     assert result["final_score"] == 60
 
 

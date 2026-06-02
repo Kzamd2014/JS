@@ -11,7 +11,7 @@ To export cookies:
 import urllib.parse
 from playwright.async_api import BrowserContext
 from config import LINKEDIN_COOKIES
-from scrapers.base import BaseScraper
+from scrapers.base import BaseScraper, MAX_CARDS_PER_QUERY, _infer_remote
 
 
 class LinkedInScraper(BaseScraper):
@@ -21,6 +21,10 @@ class LinkedInScraper(BaseScraper):
         return await self._make_context_with_cookies(browser, LINKEDIN_COOKIES)
 
     async def _search(self, context: BrowserContext, title: str, location: str) -> list[dict]:
+        if not LINKEDIN_COOKIES:
+            print("  [linkedin] No cookies — skipping (set LINKEDIN_COOKIES in .env)")
+            return []
+
         is_remote = location.lower() == "remote"
         params = {
             "keywords": title,
@@ -39,9 +43,15 @@ class LinkedInScraper(BaseScraper):
             await page.goto(url, wait_until="domcontentloaded", timeout=30000)
             await self._delay()
 
-            # Check if redirected to login
+            # Check if redirected to login or authwall
             if "login" in page.url or "authwall" in page.url:
                 print(f"  [linkedin] Not authenticated — set LINKEDIN_COOKIES in .env")
+                return []
+
+            # Check for blocking modal (unauthenticated sign-up prompt)
+            modal = await page.query_selector(".modal__overlay--visible")
+            if modal:
+                print(f"  [linkedin] Sign-up modal detected — cookies may be expired")
                 return []
 
             try:
@@ -50,7 +60,7 @@ class LinkedInScraper(BaseScraper):
                 return []  # No results for this query
 
             cards = await page.query_selector_all(".jobs-search-results__list-item, .base-card")
-            for card in cards[:20]:
+            for card in cards[:MAX_CARDS_PER_QUERY]:
                 try:
                     title_el = await card.query_selector(".job-card-list__title, .base-search-card__title")
                     company_el = await card.query_selector(".job-card-container__company-name, .base-search-card__subtitle")
@@ -76,7 +86,11 @@ class LinkedInScraper(BaseScraper):
                         except Exception:
                             pass
 
-                        await card.click()
+                        # Use JS click to bypass any pointer-events blocking from overlays
+                        try:
+                            await card.evaluate("el => el.click()")
+                        except Exception:
+                            await card.click()
                         try:
                             await page.wait_for_function(
                                 """(prev) => {
@@ -96,7 +110,7 @@ class LinkedInScraper(BaseScraper):
                         if desc_el:
                             description = (await desc_el.inner_text()).strip()
 
-                    remote = is_remote or "remote" in job_location.lower() or "hybrid" in job_location.lower()
+                    remote = _infer_remote(job_location, is_remote)
 
                     if job_title and company:
                         jobs.append(self._job(
