@@ -1,6 +1,7 @@
 import asyncio
 import json
 import random
+import traceback
 from abc import ABC, abstractmethod
 from playwright.async_api import async_playwright, Browser, BrowserContext
 
@@ -10,11 +11,13 @@ USER_AGENT = (
     "Chrome/124.0.0.0 Safari/537.36"
 )
 
+MAX_CARDS_PER_QUERY = 20
+
 
 def dedupe_jobs(jobs: list[dict]) -> list[dict]:
     """Deduplicate by (title, company, location). When the same job appears from multiple
     sites, keep the version with the longer description so scoring has more signal."""
-    seen: dict[tuple, int] = {}  # key → index in result
+    seen: dict[tuple, int] = {}
     result = []
     for job in jobs:
         key = (
@@ -30,6 +33,11 @@ def dedupe_jobs(jobs: list[dict]) -> list[dict]:
             if len(job.get("description", "")) > len(result[idx].get("description", "")):
                 result[idx] = job
     return result
+
+
+def _infer_remote(location: str, is_remote_search: bool) -> bool:
+    loc = location.lower()
+    return is_remote_search or "remote" in loc or "hybrid" in loc
 
 
 class BaseScraper(ABC):
@@ -48,7 +56,10 @@ class BaseScraper(ABC):
                             jobs.extend(results)
                             print(f"  [{self.site_name}] '{title}' / '{location}' → {len(results)} jobs")
                         except Exception as e:
-                            print(f"  [{self.site_name}] Failed '{title}'/'{location}' after retries: {e}")
+                            print(
+                                f"  [{self.site_name}] Failed '{title}'/'{location}' after retries: "
+                                f"{type(e).__name__}: {e}\n{traceback.format_exc()}"
+                            )
                         await self._delay()
             finally:
                 await browser.close()
@@ -63,10 +74,12 @@ class BaseScraper(ABC):
             return context
         try:
             cookies = json.loads(cookies_json)
-            if cookies:
+            if isinstance(cookies, list) and cookies:
                 await context.add_cookies(cookies)
         except json.JSONDecodeError as e:
-            print(f"  [{self.site_name}] Warning: could not parse cookies: {e}")
+            print(f"  [{self.site_name}] Warning: cookie JSON parse error at position {e.pos}")
+        except Exception as e:
+            print(f"  [{self.site_name}] Warning: could not apply cookies: {type(e).__name__}: {e}")
         return context
 
     @abstractmethod

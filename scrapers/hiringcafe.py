@@ -4,7 +4,7 @@ Uses the search endpoint at hiring.cafe with keyword and location filters.
 """
 import urllib.parse
 from playwright.async_api import BrowserContext
-from scrapers.base import BaseScraper
+from scrapers.base import BaseScraper, MAX_CARDS_PER_QUERY, _infer_remote
 
 
 class HiringCafeScraper(BaseScraper):
@@ -37,7 +37,7 @@ class HiringCafeScraper(BaseScraper):
             # Reuse a single detail page for all cards to avoid opening 20+ tabs
             detail_page = await context.new_page()
             try:
-                for card in cards[:15]:
+                for card in cards[:MAX_CARDS_PER_QUERY]:
                     try:
                         title_el = await card.query_selector("h2, h3, [class*='title'], [class*='jobTitle']")
                         company_el = await card.query_selector("[class*='company'], [class*='employer']")
@@ -62,7 +62,7 @@ class HiringCafeScraper(BaseScraper):
                             if desc_el:
                                 description = (await desc_el.inner_text()).strip()[:5000]
 
-                        remote = is_remote or "remote" in job_location.lower() or "hybrid" in job_location.lower()
+                        remote = _infer_remote(job_location, is_remote)
 
                         if job_title and company:
                             jobs.append(self._job(

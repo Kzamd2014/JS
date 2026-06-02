@@ -1,7 +1,6 @@
 from datetime import datetime
 from pathlib import Path
-from jinja2 import Environment, FileSystemLoader, select_autoescape
-from scorer import _parse_salary_min
+from jinja2 import Environment, FileSystemLoader
 
 
 def generate(jobs: list[dict], output_path: Path) -> None:
@@ -11,12 +10,12 @@ def generate(jobs: list[dict], output_path: Path) -> None:
         enriched.append({
             **job,
             "score_class": "high" if s >= 80 else ("mid" if s >= 60 else "low"),
-            "salary_num": _parse_salary_min(job.get("salary")) or 0,
+            "salary_num": job.get("salary_min", 0),
         })
 
     env = Environment(
         loader=FileSystemLoader(Path(__file__).parent / "templates"),
-        autoescape=select_autoescape(["html", "j2"]),
+        autoescape=True,
     )
     template = env.get_template("dashboard.html.j2")
     sites = sorted({j.get("site", "") for j in enriched if j.get("site")})
