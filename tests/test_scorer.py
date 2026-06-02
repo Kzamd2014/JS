@@ -1,4 +1,4 @@
-from scorer import score, _parse_salary_min
+from scorer import score, parse_salary_min as _parse_salary_min
 
 
 def _job(**kwargs):

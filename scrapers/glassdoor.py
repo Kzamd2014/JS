@@ -5,7 +5,7 @@ Without GLASSDOOR_COOKIES set, we scrape preview text only (~200 chars).
 import urllib.parse
 from playwright.async_api import BrowserContext
 from config import GLASSDOOR_COOKIES
-from scrapers.base import BaseScraper
+from scrapers.base import BaseScraper, MAX_CARDS_PER_QUERY, _infer_remote
 
 
 class GlassdoorScraper(BaseScraper):
@@ -38,7 +38,7 @@ class GlassdoorScraper(BaseScraper):
                 pass
 
             cards = await page.query_selector_all("[data-test='jobListing'], .react-job-listing, li[data-id]")
-            for card in cards[:20]:
+            for card in cards[:MAX_CARDS_PER_QUERY]:
                 try:
                     title_el = await card.query_selector("[data-test='job-title'], .job-title, a.jobLink")
                     company_el = await card.query_selector("[data-test='employer-name'], .job-search-key-l2wjgv")
@@ -56,10 +56,25 @@ class GlassdoorScraper(BaseScraper):
                     # Try to get description (requires login for full text)
                     description = ""
                     if title_el:
+                        prev_text = ""
+                        try:
+                            prev_el = await page.query_selector(
+                                ".desc, [data-test='description'], .jobDescriptionContent"
+                            )
+                            if prev_el:
+                                prev_text = await prev_el.inner_text()
+                        except Exception:
+                            pass
                         await card.click()
                         try:
-                            await page.wait_for_selector(
-                                ".desc, [data-test='description'], .jobDescriptionContent",
+                            await page.wait_for_function(
+                                """(prev) => {
+                                    const el = document.querySelector(
+                                        '.desc, [data-test="description"], .jobDescriptionContent'
+                                    );
+                                    return el && el.innerText.trim() !== prev.trim() && el.innerText.trim().length > 0;
+                                }""",
+                                arg=prev_text,
                                 timeout=5000,
                             )
                         except Exception:
@@ -70,7 +85,7 @@ class GlassdoorScraper(BaseScraper):
                         if desc_el:
                             description = (await desc_el.inner_text()).strip()
 
-                    remote = is_remote or "remote" in job_location.lower() or "hybrid" in job_location.lower()
+                    remote = _infer_remote(job_location, is_remote)
 
                     if job_title and company:
                         jobs.append(self._job(
