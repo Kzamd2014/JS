@@ -1,5 +1,7 @@
 import json
 import os
+import re
+import time
 import traceback
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
@@ -56,6 +58,19 @@ def _save_cache(cache: dict) -> None:
     os.replace(tmp, _CACHE_PATH)
 
 
+def _create_with_retry(client: anthropic.Anthropic, **kwargs) -> anthropic.types.Message:
+    for attempt in range(4):
+        try:
+            return client.messages.create(**kwargs)
+        except anthropic.RateLimitError:
+            if attempt == 3:
+                raise
+            wait = 10 * (2 ** attempt)  # 10s, 20s, 40s
+            print(f"  Rate limited — waiting {wait}s before retry {attempt + 1}/3...")
+            time.sleep(wait)
+    raise RuntimeError("unreachable")
+
+
 def rank_job(job: dict) -> dict:
     description = (job.get("description") or job.get("title") or "")[:4000]
     title = str(job.get("title") or "Unknown")[:200]
@@ -66,8 +81,10 @@ def rank_job(job: dict) -> dict:
 
     try:
         client = _client_instance()
-        response = client.messages.create(
-            model="claude-sonnet-4-5",
+        time.sleep(1.5)  # ~24 RPM across 2 workers, stays under 50 RPM / 50k TPM limits
+        response = _create_with_retry(
+            client,
+            model="claude-haiku-4-5-20251001",
             max_tokens=256,
             system=[{
                 "type": "text",
@@ -85,7 +102,12 @@ def rank_job(job: dict) -> dict:
                 ),
             }],
         )
-        result = json.loads(response.content[0].text)
+        text = response.content[0].text.strip()
+        # Strip markdown code fences if the model wraps its output
+        m = re.search(r'\{.*?\}', text, re.DOTALL)
+        if not m:
+            raise json.JSONDecodeError("No JSON object found", text, 0)
+        result = json.loads(m.group())
         claude_score = max(0, min(100, int(result.get("score", 50))))
         rationale = str(result.get("rationale", ""))[:300]
     except anthropic.AuthenticationError as e:
@@ -153,7 +175,7 @@ def rank_jobs(jobs: list[dict]) -> list[dict]:
             })
         return i, result, cache_entry
 
-    with ThreadPoolExecutor(max_workers=5) as executor:
+    with ThreadPoolExecutor(max_workers=2) as executor:
         futures = {executor.submit(_rank_one, item): item for item in to_rank}
         for future in as_completed(futures):
             try:

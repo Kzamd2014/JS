@@ -13,7 +13,7 @@ class IndeedScraper(BaseScraper):
 
     async def _search(self, context: BrowserContext, title: str, location: str) -> list[dict]:
         is_remote = location.lower() == "remote"
-        params: dict = {"q": title, "radius": "25"}
+        params: dict = {"q": title, "radius": "25", "fromage": "7"}
         if is_remote:
             params["remotejob"] = _REMOTE_TOKEN
         else:

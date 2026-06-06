@@ -34,6 +34,6 @@ SECONDARY_TITLES = [
 
 ALL_TITLES = PRIMARY_TITLES + SECONDARY_TITLES
 
-LOCATIONS = ["Kansas City, MO", "remote"]
+LOCATIONS = ["Kansas City, MO", "Overland Park, KS", "Lenexa, KS", "Olathe, KS", "Lee's Summit, MO", "Independence, MO"]
 
 RESUME_TEXT = (Path(__file__).parent / "data" / "resume.txt").read_text(encoding="utf-8")
