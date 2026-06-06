@@ -18,9 +18,9 @@ class GlassdoorScraper(BaseScraper):
         is_remote = location.lower() == "remote"
         encoded_title = urllib.parse.quote(title)
         if is_remote:
-            url = f"https://www.glassdoor.com/Job/jobs.htm?sc.keyword={encoded_title}&remoteWorkType=1"
+            url = f"https://www.glassdoor.com/Job/jobs.htm?sc.keyword={encoded_title}&remoteWorkType=1&fromAge=7"
         else:
-            url = f"https://www.glassdoor.com/Job/jobs.htm?sc.keyword={encoded_title}&locT=C&locKeyword={urllib.parse.quote(location)}"
+            url = f"https://www.glassdoor.com/Job/jobs.htm?sc.keyword={encoded_title}&locT=C&locKeyword={urllib.parse.quote(location)}&fromAge=7"
 
         page = await context.new_page()
         jobs = []
