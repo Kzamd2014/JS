@@ -30,6 +30,7 @@ class LinkedInScraper(BaseScraper):
             "keywords": title,
             "location": "" if is_remote else location,
             "f_WT": "2" if is_remote else "",  # 2 = remote filter
+            "f_TPR": "r604800",               # past 7 days
             "position": "1",
             "pageNum": "0",
         }

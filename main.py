@@ -61,20 +61,23 @@ def _load_latest_raw() -> list[dict]:
     if not raw_files:
         raise FileNotFoundError("No raw scrape files in output/. Run 'python main.py scrape' first.")
 
-    ts_pattern = re.compile(r"_(\d{8}_\d{6})$")
-    timestamps = sorted({
-        m.group(1) for f in raw_files if (m := ts_pattern.search(f.stem))
-    })
-    latest_ts = timestamps[-1]
-    latest_files = [
-        f for f in raw_files
-        if (m := ts_pattern.search(f.stem)) and m.group(1) == latest_ts
-    ]
+    # Group by site name, pick the latest file per site
+    site_pattern = re.compile(r"^raw_(.+)_(\d{8}_\d{6})$")
+    latest_per_site: dict[str, Path] = {}
+    for f in raw_files:
+        m = site_pattern.match(f.stem)
+        if not m:
+            continue
+        site, ts = m.group(1), m.group(2)
+        if site not in latest_per_site or ts > site_pattern.match(latest_per_site[site].stem).group(2):
+            latest_per_site[site] = f
 
     all_jobs: list[dict] = []
-    for f in latest_files:
+    for site, f in sorted(latest_per_site.items()):
         try:
-            all_jobs.extend(json.loads(f.read_text(encoding="utf-8")))
+            jobs = json.loads(f.read_text(encoding="utf-8"))
+            print(f"  Loaded {len(jobs)} jobs from {f.name}")
+            all_jobs.extend(jobs)
         except (json.JSONDecodeError, UnicodeDecodeError) as e:
             print(f"  Warning: skipping corrupt file {f.name}: {e}")
     return dedupe_jobs(all_jobs)
