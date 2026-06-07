@@ -1,0 +1,128 @@
+name: Daily Job Scrape
+
+on:
+  schedule:
+    - cron: '0 13 * * 1-5'  # 7am CT weekdays (UTC-6 standard / UTC-5 daylight)
+  workflow_dispatch:          # manual trigger from the Actions tab
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Install Playwright browsers
+        run: playwright install chromium --with-deps
+
+      - name: Restore scores cache
+        uses: actions/cache@v4
+        with:
+          path: output/scores_cache.json
+          key: scores-cache-${{ github.run_id }}
+          restore-keys: scores-cache-
+
+      - name: Write secrets to disk
+        run: |
+          printf 'ANTHROPIC_API_KEY=%s\n' "$ANTHROPIC_API_KEY"  > .env
+          printf 'SERPAPI_KEY=%s\n'       "$SERPAPI_KEY"        >> .env
+          printf 'NOTIFY_EMAIL=%s\n'      "$NOTIFY_EMAIL"       >> .env
+          printf 'GMAIL_APP_PASSWORD=%s\n' "$GMAIL_APP_PASSWORD" >> .env
+          printf '%s' "$RESUME_TXT" > data/resume.txt
+        env:
+          ANTHROPIC_API_KEY:   ${{ secrets.ANTHROPIC_API_KEY }}
+          SERPAPI_KEY:         ${{ secrets.SERPAPI_KEY }}
+          NOTIFY_EMAIL:        ${{ secrets.NOTIFY_EMAIL }}
+          GMAIL_APP_PASSWORD:  ${{ secrets.GMAIL_APP_PASSWORD }}
+          RESUME_TXT:          ${{ secrets.RESUME_TXT }}
+
+      - name: Run pipeline
+        run: python main.py run
+
+      - name: Deploy dashboard to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        if: success()
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: output
+          destination_dir: .
+          keep_files: false
+
+      - name: Upload dashboard as artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dashboard-${{ github.run_number }}
+          path: output/dashboard.html
+          retention-days: 30
+
+      - name: Send results email on success
+        if: success()
+        run: |
+          python - <<'PYEOF'
+          import glob, json, os, smtplib, datetime
+          from email.message import EmailMessage
+          from dotenv import load_dotenv
+          load_dotenv()
+          email = os.environ.get('NOTIFY_EMAIL', '')
+          pw    = os.environ.get('GMAIL_APP_PASSWORD', '')
+          if not email or not pw:
+              raise SystemExit(0)
+          files = sorted(glob.glob('output/ranked_*.json'))
+          jobs  = json.loads(open(files[-1]).read()) if files else []
+          top   = jobs[:10]
+          dashboard_url = 'https://kzamd2014.github.io/job-scraper/dashboard.html'
+          lines = [f"Top {len(top)} matches for {datetime.date.today().isoformat()} ({len(jobs)} total scraped):\n"]
+          for i, j in enumerate(top, 1):
+              lines.append(f"{i}. [{j.get('final_score','?')}] {j.get('title')} @ {j.get('company')} — {j.get('location')}")
+              if j.get('claude_rationale'):
+                  lines.append(f"   {j['claude_rationale']}")
+              if j.get('url'):
+                  lines.append(f"   {j['url']}")
+              lines.append('')
+          lines.append(f"Full dashboard: {dashboard_url}")
+          msg = EmailMessage()
+          msg['Subject'] = f"Job matches {datetime.date.today().isoformat()} — {len(jobs)} found"
+          msg['From']    = email
+          msg['To']      = email
+          msg.set_content('\n'.join(lines))
+          with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
+              smtp.login(email, pw)
+              smtp.send_message(msg)
+          PYEOF
+
+      - name: Send failure notification email
+        if: failure()
+        run: |
+          python - <<'PYEOF'
+          import os, smtplib, datetime
+          from email.message import EmailMessage
+          from dotenv import load_dotenv
+          load_dotenv()
+          email = os.environ.get('NOTIFY_EMAIL', '')
+          pw    = os.environ.get('GMAIL_APP_PASSWORD', '')
+          if not email or not pw:
+              raise SystemExit(0)
+          log_path = 'output/scrape_' + datetime.date.today().isoformat() + '.log'
+          MAX_BYTES = 50_000
+          raw  = open(log_path, 'rb').read() if os.path.exists(log_path) else b'Log not found.'
+          body = raw[-MAX_BYTES:].decode('utf-8', errors='replace')
+          msg = EmailMessage()
+          msg['Subject'] = 'Job scraper FAILED (GitHub Actions)'
+          msg['From']    = email
+          msg['To']      = email
+          msg.set_content(body)
+          with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
+              smtp.login(email, pw)
+              smtp.send_message(msg)
+          PYEOF

@@ -1,10 +1,62 @@
 """
 Hiring Cafe scraper. Low bot protection, straightforward to scrape.
-Uses the search endpoint at hiring.cafe with keyword and location filters.
+Job data lives on individual detail pages (/job/{id}), not the search results listing.
+Search uses a JSON searchState URL parameter.
 """
+import asyncio
+import json
+import re
 import urllib.parse
 from playwright.async_api import BrowserContext
+from playwright._impl._errors import TargetClosedError
 from scrapers.base import BaseScraper, MAX_CARDS_PER_QUERY, _infer_remote
+
+
+def _posted_within_week(description: str) -> bool:
+    """Return False if the description contains a 'Posted X ago' marker older than 7 days."""
+    m = re.search(r'Posted\s+(\d+)\s*(d|w|mo)\s+ago', description, re.IGNORECASE)
+    if not m:
+        return True  # Can't determine age — include by default
+    n, unit = int(m.group(1)), m.group(2).lower()
+    days = n if unit == 'd' else n * 7 if unit == 'w' else n * 30
+    return days <= 7
+
+_EXTRACT_JOB_JS = """() => {
+    const h2 = document.querySelector('h2');
+    const title = h2 ? h2.textContent.trim() : '';
+
+    const companySpan = h2 && h2.parentElement
+        ? h2.parentElement.querySelector('span[class*="text-xl"]')
+        : null;
+    const company = companySpan
+        ? companySpan.textContent.replace(/^@\\s*/, '').trim()
+        : '';
+
+    // Location: first span sibling of a pin-icon SVG (no child links)
+    let location = '';
+    for (const div of document.querySelectorAll('div')) {
+        const svg = div.querySelector('svg');
+        const span = div.querySelector('span');
+        if (svg && span && !div.querySelector('a') && span.textContent.includes(',')) {
+            location = span.textContent.trim();
+            break;
+        }
+    }
+
+    // Work-type badges (Onsite, Remote, Hybrid, Full Time, etc.)
+    const badges = Array.from(
+        document.querySelectorAll('span[class*="rounded"][class*="border"]')
+    ).map(s => s.textContent.trim());
+    const remote = badges.some(b => /remote|hybrid/i.test(b));
+
+    // Description: text after the "Job Description" section header
+    const body = document.body ? document.body.innerText : '';
+    const marker = 'Job Description\\n';
+    const idx = body.indexOf(marker);
+    const description = idx >= 0 ? body.slice(idx + marker.length).trim() : '';
+
+    return { title, company, location, remote, description };
+}"""
 
 
 class HiringCafeScraper(BaseScraper):
@@ -12,70 +64,63 @@ class HiringCafeScraper(BaseScraper):
 
     async def _search(self, context: BrowserContext, title: str, location: str) -> list[dict]:
         is_remote = location.lower() == "remote"
-        params: dict = {"q": title}
-        if not is_remote:
-            params["location"] = location
+        search_state: dict = {"searchQuery": title}
+        if is_remote:
+            search_state["remote"] = True
         else:
-            params["remote"] = "1"
+            search_state["location"] = location
 
-        url = "https://hiring.cafe/?" + urllib.parse.urlencode(params)
+        url = "https://hiring.cafe/?searchState=" + urllib.parse.quote(json.dumps(search_state))
         page = await context.new_page()
         jobs = []
         try:
-            await page.goto(url, wait_until="domcontentloaded", timeout=30000)
+            try:
+                await page.goto(url, wait_until="domcontentloaded", timeout=30000)
+                await asyncio.sleep(3)  # let JS render job cards
+            except TargetClosedError:
+                return []
             await self._delay()
 
-            try:
-                await page.wait_for_selector("[class*='job'], article, .result", timeout=10000)
-            except Exception:
-                pass
+            # Collect job links from the search results page
+            links = await page.query_selector_all("a[href^='/job/']")
+            hrefs = []
+            seen = set()
+            for link in links[:MAX_CARDS_PER_QUERY]:
+                href = await link.get_attribute("href")
+                if href and href not in seen:
+                    seen.add(href)
+                    hrefs.append("https://hiring.cafe" + href)
 
-            cards = await page.query_selector_all(
-                "article, [class*='jobCard'], [class*='job-card'], li[class*='result']"
-            )
+            if not hrefs:
+                return []
 
-            # Reuse a single detail page for all cards to avoid opening 20+ tabs
+            # Fetch each detail page
             detail_page = await context.new_page()
             try:
-                for card in cards[:MAX_CARDS_PER_QUERY]:
+                for job_url in hrefs:
                     try:
-                        title_el = await card.query_selector("h2, h3, [class*='title'], [class*='jobTitle']")
-                        company_el = await card.query_selector("[class*='company'], [class*='employer']")
-                        location_el = await card.query_selector("[class*='location'], [class*='place']")
-                        salary_el = await card.query_selector("[class*='salary'], [class*='pay'], [class*='compensation']")
-                        link_el = await card.query_selector("a")
+                        await detail_page.goto(job_url, wait_until="domcontentloaded", timeout=20000)
+                        await asyncio.sleep(2)
+                        await self._delay()
 
-                        job_title = (await title_el.inner_text()).strip() if title_el else ""
-                        company = (await company_el.inner_text()).strip() if company_el else ""
-                        job_location = (await location_el.inner_text()).strip() if location_el else ""
-                        salary = (await salary_el.inner_text()).strip() if salary_el else None
-                        href = await link_el.get_attribute("href") if link_el else ""
-                        job_url = ("https://hiring.cafe" + href) if href and href.startswith("/") else href or ""
+                        data = await detail_page.evaluate(_EXTRACT_JOB_JS)
+                        job_title = data.get("title", "")
+                        company = data.get("company", "")
+                        job_location = data.get("location", "") or location
+                        remote = data.get("remote", False) or _infer_remote(job_location, is_remote)
+                        description = data.get("description", "")[:5000]
 
-                        description = ""
-                        if job_url:
-                            await detail_page.goto(job_url, wait_until="domcontentloaded", timeout=20000)
-                            await self._delay()
-                            desc_el = await detail_page.query_selector(
-                                "[class*='description'], [class*='jobDescription']"
-                            )
-                            if desc_el:
-                                description = (await desc_el.inner_text()).strip()[:5000]
-
-                        remote = _infer_remote(job_location, is_remote)
-
-                        if job_title and company:
+                        if job_title and company and _posted_within_week(description):
                             jobs.append(self._job(
                                 title=job_title,
                                 company=company,
-                                location=job_location or location,
+                                location=job_location,
                                 url=job_url,
                                 description=description,
                                 remote=remote,
-                                salary=salary,
                             ))
                     except Exception as e:
-                        print(f"  [hiringcafe] Card error ({type(e).__name__}): {e}")
+                        print(f"  [hiringcafe] Detail page error ({type(e).__name__}): {e}")
                         continue
             finally:
                 await detail_page.close()
