@@ -12,7 +12,7 @@ class WellfoundScraper(BaseScraper):
 
     async def _search(self, context: BrowserContext, title: str, location: str) -> list[dict]:
         is_remote = location.lower() == "remote"
-        params: dict = {"q": title, "datePosted": "7", "l": location}
+        params: dict = {"q": title, "datePosted": "1", "l": location}
 
         url = "https://wellfound.com/jobs?" + urllib.parse.urlencode(params)
         page = await context.new_page()

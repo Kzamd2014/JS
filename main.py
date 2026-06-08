@@ -8,9 +8,7 @@ from datetime import datetime
 from pathlib import Path
 
 from config import ALL_TITLES, OUTPUT_DIR, LOCATIONS
-from scrapers.linkedin import LinkedInScraper
-from scrapers.indeed import IndeedScraper
-from scrapers.glassdoor import GlassdoorScraper
+from scrapers.google_jobs import GoogleJobsScraper
 from scrapers.wellfound import WellfoundScraper
 from scrapers.hiringcafe import HiringCafeScraper
 from scrapers.base import dedupe_jobs
@@ -26,9 +24,7 @@ def _atomic_write(path: Path, content: str) -> None:
 
 
 SCRAPERS = {
-    "linkedin": LinkedInScraper,
-    "indeed": IndeedScraper,
-    "glassdoor": GlassdoorScraper,
+    "google_jobs": GoogleJobsScraper,
     "wellfound": WellfoundScraper,
     "hiringcafe": HiringCafeScraper,
 }
