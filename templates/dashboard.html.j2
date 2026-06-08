@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'none';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'nonce-{{ nonce }}'; style-src 'unsafe-inline'; connect-src 'none';">
 <title>Job Matches — Kelly Zamboni</title>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -159,7 +159,7 @@ tr:hover td { background: #f8fafc; }
     </table>
   </div>
 </main>
-<script>
+<script nonce="{{ nonce }}">
 (function () {
   const tbody = document.getElementById('jobs-body');
   let rows = [...tbody.querySelectorAll('.job-row')];

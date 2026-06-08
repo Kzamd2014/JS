@@ -1,0 +1,17 @@
+# Copy this file to data/resume.txt and replace with your actual resume content.
+# data/resume.txt is gitignored — it will not be committed.
+
+Your Name
+Role: Your Title
+
+Summary:
+[Brief professional summary]
+
+Skills:
+[List core skills]
+
+Experience:
+[Work history]
+
+Education:
+[Degrees and certifications]

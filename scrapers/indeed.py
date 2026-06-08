@@ -1,11 +1,25 @@
+"""
+Indeed scraper. Uses the Indeed RSS feed instead of Playwright DOM scraping —
+the RSS endpoint doesn't trigger bot detection and requires no cookies or JS.
+"""
+import re
 import urllib.parse
+import urllib.request
+import defusedxml.ElementTree as ET
 from playwright.async_api import BrowserContext
 from scrapers.base import BaseScraper, MAX_CARDS_PER_QUERY, _infer_remote
 
-# Remote filter token used by Indeed's URL
 _REMOTE_TOKEN = "032b3046-06a3-4876-8dfd-474eb5e7ed11"
+_RSS_HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; RSS/2.0)"}
 
-_CHALLENGE_KEYWORDS = ("robot", "captcha", "human verification", "access denied", "blocked")
+
+def _strip_html(text: str) -> str:
+    return re.sub(r"<[^>]+>", "", text).strip()
+
+
+def _parse_field(html: str, label: str) -> str:
+    m = re.search(rf"<b>{re.escape(label)}:</b>\s*([^<]+)", html, re.IGNORECASE)
+    return m.group(1).strip() if m else ""
 
 
 class IndeedScraper(BaseScraper):
@@ -13,90 +27,47 @@ class IndeedScraper(BaseScraper):
 
     async def _search(self, context: BrowserContext, title: str, location: str) -> list[dict]:
         is_remote = location.lower() == "remote"
-        params: dict = {"q": title, "radius": "25", "fromage": "7"}
+        params: dict = {"q": title, "radius": "25", "fromage": "1", "limit": "25"}
         if is_remote:
             params["remotejob"] = _REMOTE_TOKEN
         else:
             params["l"] = location
 
-        url = "https://www.indeed.com/jobs?" + urllib.parse.urlencode(params)
-        page = await context.new_page()
-        jobs = []
+        url = "https://www.indeed.com/rss?" + urllib.parse.urlencode(params)
         try:
-            await page.goto(url, wait_until="domcontentloaded", timeout=30000)
-            await self._delay()
+            req = urllib.request.Request(url, headers=_RSS_HEADERS)
+            with urllib.request.urlopen(req, timeout=20) as resp:
+                raw = resp.read().decode("utf-8", errors="replace")
+        except Exception as e:
+            print(f"  [indeed] RSS fetch failed: {e}")
+            return []
 
-            # Detect bot challenge pages before iterating
-            page_title = (await page.title()).lower()
-            if any(kw in page_title for kw in _CHALLENGE_KEYWORDS):
-                print(f"  [indeed] Bot challenge detected for '{title}' — skipping")
-                return []
+        try:
+            root = ET.fromstring(raw)
+        except ET.ParseError as e:
+            print(f"  [indeed] RSS parse error: {e}")
+            return []
 
-            cards = await page.query_selector_all("[data-testid='slider_item'], .job_seen_beacon")
-            for card in cards[:MAX_CARDS_PER_QUERY]:
-                try:
-                    title_el = await card.query_selector("h2.jobTitle a, [data-testid='jobTitle']")
-                    company_el = await card.query_selector("[data-testid='company-name']")
-                    location_el = await card.query_selector("[data-testid='text-location']")
-                    salary_el = await card.query_selector("[data-testid='attribute_snippet_testid'], .salary-snippet-container")
-
-                    job_title = (await title_el.inner_text()).strip() if title_el else ""
-                    company = (await company_el.inner_text()).strip() if company_el else ""
-                    job_location = (await location_el.inner_text()).strip() if location_el else ""
-                    salary = (await salary_el.inner_text()).strip() if salary_el else None
-
-                    href = await title_el.get_attribute("href") if title_el else ""
-                    job_url = "https://www.indeed.com" + href if href and href.startswith("/") else href or ""
-
-                    # Load full description, wait for panel to update to this job's content
-                    description = ""
-                    if title_el:
-                        prev_text = ""
-                        try:
-                            prev_el = await page.query_selector(
-                                "#jobDescriptionText, .jobsearch-jobDescriptionText"
-                            )
-                            if prev_el:
-                                prev_text = await prev_el.inner_text()
-                        except Exception:
-                            pass
-
-                        await title_el.click()
-                        try:
-                            await page.wait_for_function(
-                                """(prev) => {
-                                    const el = document.querySelector(
-                                        '#jobDescriptionText, .jobsearch-jobDescriptionText'
-                                    );
-                                    return el && el.innerText.trim() !== prev.trim() && el.innerText.trim().length > 0;
-                                }""",
-                                arg=prev_text,
-                                timeout=5000,
-                            )
-                        except Exception:
-                            pass
-                        desc_el = await page.query_selector(
-                            "#jobDescriptionText, .jobsearch-jobDescriptionText"
-                        )
-                        if desc_el:
-                            description = (await desc_el.inner_text()).strip()
-
-                    remote = _infer_remote(job_location, is_remote)
-
-                    if job_title and company:
-                        jobs.append(self._job(
-                            title=job_title,
-                            company=company,
-                            location=job_location or location,
-                            url=job_url,
-                            description=description,
-                            remote=remote,
-                            salary=salary,
-                        ))
-                except Exception as e:
-                    print(f"  [indeed] Card error ({type(e).__name__}): {e}")
-                    continue
-        finally:
-            await page.close()
-
+        jobs = []
+        for item in root.findall(".//item")[:MAX_CARDS_PER_QUERY]:
+            try:
+                job_title = (item.findtext("title") or "").strip()
+                desc_html = item.findtext("description") or ""
+                company = _parse_field(desc_html, "Company")
+                job_loc = _parse_field(desc_html, "Location") or location
+                job_url = (item.findtext("guid") or item.findtext("link") or "").strip()
+                description = _strip_html(desc_html)
+                remote = _infer_remote(job_loc, is_remote)
+                if job_title:
+                    jobs.append(self._job(
+                        title=job_title,
+                        company=company,
+                        location=job_loc,
+                        url=job_url,
+                        description=description,
+                        remote=remote,
+                    ))
+            except Exception as e:
+                print(f"  [indeed] Item parse error: {e}")
+                continue
         return jobs
