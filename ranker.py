@@ -98,7 +98,7 @@ def rank_job(job: dict) -> dict:
                     f"Company: {company}\n"
                     f"Location: {location}\n"
                     f"Salary: {salary}\n\n"
-                    f"Description:\n{description}"
+                    f"<job_description>\n{description}\n</job_description>"
                 ),
             }],
         )
@@ -146,12 +146,14 @@ def rank_jobs(jobs: list[dict]) -> list[dict]:
         if url and url in cache:
             cached = cache[url]
             rule_score = job.get("rule_score", 0)
+            claude_score = max(0, min(100, int(cached.get("claude_score", 50))))
+            rationale = str(cached.get("claude_rationale", ""))[:300]
             pre_ranked[i] = {
                 **job,
-                "claude_score": cached["claude_score"],
-                "claude_rationale": cached["claude_rationale"],
+                "claude_score": claude_score,
+                "claude_rationale": rationale,
                 "claude_api_failed": False,
-                "final_score": max(0, min(100, cached["claude_score"] + rule_score)),
+                "final_score": max(0, min(100, claude_score + rule_score)),
             }
         else:
             to_rank.append((i, job))

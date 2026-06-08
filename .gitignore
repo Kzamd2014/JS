@@ -6,4 +6,6 @@ __pycache__/
 output/*.html
 output/raw_*.json
 output/ranked_*.json
+output/scores_cache.json
+data/resume.txt
 .DS_Store

@@ -12,14 +12,14 @@ from playwright._impl._errors import TargetClosedError
 from scrapers.base import BaseScraper, MAX_CARDS_PER_QUERY, _infer_remote
 
 
-def _posted_within_week(description: str) -> bool:
-    """Return False if the description contains a 'Posted X ago' marker older than 7 days."""
+def _posted_within_day(description: str) -> bool:
+    """Return False if the description contains a 'Posted X ago' marker older than 1 day."""
     m = re.search(r'Posted\s+(\d+)\s*(d|w|mo)\s+ago', description, re.IGNORECASE)
     if not m:
         return True  # Can't determine age — include by default
     n, unit = int(m.group(1)), m.group(2).lower()
     days = n if unit == 'd' else n * 7 if unit == 'w' else n * 30
-    return days <= 7
+    return days <= 1
 
 _EXTRACT_JOB_JS = """() => {
     const h2 = document.querySelector('h2');
@@ -110,7 +110,7 @@ class HiringCafeScraper(BaseScraper):
                         remote = data.get("remote", False) or _infer_remote(job_location, is_remote)
                         description = data.get("description", "")[:5000]
 
-                        if job_title and company and _posted_within_week(description):
+                        if job_title and company and _posted_within_day(description):
                             jobs.append(self._job(
                                 title=job_title,
                                 company=company,
