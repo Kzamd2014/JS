@@ -37,6 +37,7 @@ jobs:
           printf 'SERPAPI_KEY=%s\n'       "$SERPAPI_KEY"        >> .env
           printf 'NOTIFY_EMAIL=%s\n'      "$NOTIFY_EMAIL"       >> .env
           printf 'GMAIL_APP_PASSWORD=%s\n' "$GMAIL_APP_PASSWORD" >> .env
+          mkdir -p data
           printf '%s' "$RESUME_TXT" > data/resume.txt
         env:
           ANTHROPIC_API_KEY:   ${{ secrets.ANTHROPIC_API_KEY }}
@@ -73,7 +74,7 @@ jobs:
           import glob, json, os, smtplib, datetime
           from email.message import EmailMessage
           from dotenv import load_dotenv
-          load_dotenv()
+          load_dotenv(dotenv_path='.env')
           email = os.environ.get('NOTIFY_EMAIL', '')
           pw    = os.environ.get('GMAIL_APP_PASSWORD', '')
           if not email or not pw:
@@ -108,7 +109,7 @@ jobs:
           import os, smtplib, datetime
           from email.message import EmailMessage
           from dotenv import load_dotenv
-          load_dotenv()
+          load_dotenv(dotenv_path='.env')
           email = os.environ.get('NOTIFY_EMAIL', '')
           pw    = os.environ.get('GMAIL_APP_PASSWORD', '')
           if not email or not pw:
