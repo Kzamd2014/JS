@@ -12,14 +12,15 @@ from playwright._impl._errors import TargetClosedError
 from scrapers.base import BaseScraper, MAX_CARDS_PER_QUERY, _infer_remote
 
 
-def _posted_within_day(description: str) -> bool:
-    """Return False if the description contains a 'Posted X ago' marker older than 1 day."""
+def _posted_within_days(description: str, max_days: int = 4) -> bool:
+    """Return False if the description contains a 'Posted X ago' marker older than max_days.
+    4 days covers Mon runs that need to see Fri postings."""
     m = re.search(r'Posted\s+(\d+)\s*(d|w|mo)\s+ago', description, re.IGNORECASE)
     if not m:
         return True  # Can't determine age — include by default
     n, unit = int(m.group(1)), m.group(2).lower()
     days = n if unit == 'd' else n * 7 if unit == 'w' else n * 30
-    return days <= 1
+    return days <= max_days
 
 _EXTRACT_JOB_JS = """() => {
     const h2 = document.querySelector('h2');
@@ -81,15 +82,17 @@ class HiringCafeScraper(BaseScraper):
                 return []
             await self._delay()
 
-            # Collect job links from the search results page
+            # Collect job links from the search results page — dedup first, then cap
             links = await page.query_selector_all("a[href^='/job/']")
             hrefs = []
             seen = set()
-            for link in links[:MAX_CARDS_PER_QUERY]:
+            for link in links:
                 href = await link.get_attribute("href")
                 if href and href not in seen:
                     seen.add(href)
                     hrefs.append("https://hiring.cafe" + href)
+                    if len(hrefs) >= MAX_CARDS_PER_QUERY:
+                        break
 
             if not hrefs:
                 return []
@@ -110,7 +113,7 @@ class HiringCafeScraper(BaseScraper):
                         remote = data.get("remote", False) or _infer_remote(job_location, is_remote)
                         description = data.get("description", "")[:5000]
 
-                        if job_title and company and _posted_within_day(description):
+                        if job_title and company and _posted_within_days(description):
                             jobs.append(self._job(
                                 title=job_title,
                                 company=company,

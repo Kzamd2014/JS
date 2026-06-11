@@ -104,7 +104,7 @@ def rank_job(job: dict) -> dict:
         )
         text = response.content[0].text.strip()
         # Strip markdown code fences if the model wraps its output
-        m = re.search(r'\{.*?\}', text, re.DOTALL)
+        m = re.search(r'\{[\s\S]*\}', text)
         if not m:
             raise json.JSONDecodeError("No JSON object found", text, 0)
         result = json.loads(m.group())
@@ -184,6 +184,17 @@ def rank_jobs(jobs: list[dict]) -> list[dict]:
                 i, result, cache_entry = future.result()
             except Exception as e:
                 print(f"  WARNING: Ranking failed: {type(e).__name__}: {e}\n{traceback.format_exc()}")
+                i, job = futures[future]
+                rule_score = job.get("rule_score", 0)
+                ranked[i] = {
+                    **job,
+                    "claude_score": 50,
+                    "claude_rationale": "ranking error",
+                    "claude_api_failed": True,
+                    "final_score": max(0, min(100, 50 + rule_score)),
+                }
+                completed += 1
+                print(f"  Ranked {completed}/{len(jobs)}: {job.get('title')} @ {job.get('company')} (error fallback)")
                 continue
             ranked[i] = result
             if cache_entry:

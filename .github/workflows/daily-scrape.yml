@@ -89,12 +89,13 @@ jobs:
 
       - name: Send results email on success
         if: success()
+        env:
+          NOTIFY_EMAIL:       ${{ secrets.NOTIFY_EMAIL }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
         run: |
           python - <<'PYEOF'
           import glob, json, os, smtplib, datetime
           from email.message import EmailMessage
-          from dotenv import load_dotenv
-          load_dotenv(dotenv_path='.env')
           email = os.environ.get('NOTIFY_EMAIL', '')
           pw    = os.environ.get('GMAIL_APP_PASSWORD', '')
           if not email or not pw:
@@ -124,12 +125,13 @@ jobs:
 
       - name: Send failure notification email
         if: failure()
+        env:
+          NOTIFY_EMAIL:       ${{ secrets.NOTIFY_EMAIL }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
         run: |
           python - <<'PYEOF'
           import os, smtplib, datetime
           from email.message import EmailMessage
-          from dotenv import load_dotenv
-          load_dotenv(dotenv_path='.env')
           email = os.environ.get('NOTIFY_EMAIL', '')
           pw    = os.environ.get('GMAIL_APP_PASSWORD', '')
           if not email or not pw:

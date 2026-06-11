@@ -71,7 +71,7 @@ class GoogleJobsScraper(BaseScraper):
                     company=company,
                     location=job_location,
                     url=job_url,
-                    description=item.get("description", "")[:5000],
+                    description=(item.get("description") or "")[:5000],
                     remote=remote,
                     salary=ext.get("salary"),
                 ))

@@ -3,6 +3,7 @@ import asyncio
 import json
 import os
 import re
+import sys
 import traceback
 from datetime import datetime
 from pathlib import Path
@@ -10,7 +11,6 @@ from pathlib import Path
 from config import ALL_TITLES, OUTPUT_DIR, LOCATIONS
 from scrapers.adzuna import AdzunaScraper
 from scrapers.google_jobs import GoogleJobsScraper
-from scrapers.wellfound import WellfoundScraper
 from scrapers.hiringcafe import HiringCafeScraper
 from scrapers.base import dedupe_jobs
 from scorer import score as rule_score
@@ -27,7 +27,6 @@ def _atomic_write(path: Path, content: str) -> None:
 SCRAPERS = {
     "adzuna": AdzunaScraper,
     "google_jobs": GoogleJobsScraper,
-    "wellfound": WellfoundScraper,
     "hiringcafe": HiringCafeScraper,
 }
 
@@ -101,7 +100,10 @@ def cmd_rank(args):
 
 
 def cmd_run(args):
-    asyncio.run(_run_scrapers(None))
+    jobs = asyncio.run(_run_scrapers(None))
+    if not jobs:
+        print("\nERROR: All scrapers returned 0 jobs — aborting pipeline.")
+        sys.exit(1)
     cmd_rank(args)
     print(f"\nDone. Open output/dashboard.html in your browser.")
 
