@@ -77,7 +77,7 @@ class AdzunaScraper(BaseScraper):
                 company=company,
                 location=job_location,
                 url=item.get("redirect_url", ""),
-                description=item.get("description", "")[:5000],
+                description=(item.get("description") or "")[:5000],
                 remote=remote,
                 salary=salary,
             ))

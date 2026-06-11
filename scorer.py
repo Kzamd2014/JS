@@ -80,7 +80,7 @@ _HR_GENERIC_PATTERNS = [re.compile(p) for p in [
 _ENTRY_PATTERNS = [re.compile(p) for p in [
     r'entry[\s-]level', r'\bjunior\b', r'\btrainee\b', r'\bintern\b',
     r'new\s+grad(?:uate)?', r'level\s*[i1]\b', r'associate\s+level',
-    r'\bi$',
+    r'\b[ivx]{1,4}\s*$',
 ]]
 _ONSITE_PATTERNS = [re.compile(p) for p in [
     r'on[\s-]?site\s+only', r'onsite\s+only', r'fully\s+in[\s-]office',
