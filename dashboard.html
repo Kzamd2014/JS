@@ -1,0 +1,1625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'nonce-ac2b1f119941e62538e2b343b9d5b505'; style-src 'unsafe-inline'; connect-src 'none';">
+<title>Job Matches — Kelly Zamboni</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f1f5f9; color: #1e293b; font-size: 14px; }
+
+header { background: #0f172a; color: #f8fafc; padding: 1.25rem 2rem; }
+header h1 { font-size: 1.25rem; font-weight: 600; letter-spacing: -0.01em; }
+header .meta { color: #94a3b8; font-size: 0.8rem; margin-top: 0.2rem; }
+
+.controls { display: flex; gap: 0.75rem; margin-top: 1rem; flex-wrap: wrap; align-items: center; }
+.controls input[type="text"],
+.controls select,
+.controls input[type="number"] {
+  padding: 0.35rem 0.65rem;
+  border: 1px solid #334155;
+  border-radius: 5px;
+  background: #1e293b;
+  color: #f1f5f9;
+  font-size: 0.8rem;
+  outline: none;
+}
+.controls input[type="text"] { width: 220px; }
+.controls input[type="number"] { width: 70px; }
+.controls label { color: #94a3b8; font-size: 0.8rem; display: flex; align-items: center; gap: 0.4rem; }
+
+main { padding: 1.25rem 2rem; }
+.table-wrap { overflow-x: auto; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+
+table { width: 100%; border-collapse: collapse; background: #fff; min-width: 900px; }
+thead { background: #f8fafc; border-bottom: 2px solid #e2e8f0; }
+th {
+  padding: 0.6rem 0.9rem;
+  text-align: left;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #64748b;
+  white-space: nowrap;
+}
+th[data-sort] { cursor: pointer; }
+th[data-sort]:hover { color: #0f172a; }
+th[data-sort]::after { content: ' ↕'; opacity: 0.4; }
+
+td { padding: 0.65rem 0.9rem; border-top: 1px solid #f1f5f9; vertical-align: top; }
+tr:hover td { background: #f8fafc; }
+
+.score-cell { width: 64px; }
+.score {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 42px; height: 42px; border-radius: 50%;
+  font-weight: 700; font-size: 0.85rem; line-height: 1;
+}
+.score-high { background: #dcfce7; color: #15803d; }
+.score-mid  { background: #fef9c3; color: #a16207; }
+.score-low  { background: #fee2e2; color: #b91c1c; }
+
+.job-title { font-weight: 600; }
+.job-title a { color: #2563eb; text-decoration: none; }
+.job-title a:hover { text-decoration: underline; }
+.company-name { color: #64748b; font-size: 0.8rem; margin-top: 0.15rem; }
+
+.badge {
+  display: inline-block; padding: 0.15rem 0.45rem;
+  border-radius: 4px; font-size: 0.72rem; font-weight: 500;
+  margin: 0.1rem 0.1rem 0.1rem 0;
+  white-space: nowrap;
+}
+.badge-default { background: #e2e8f0; color: #475569; }
+.badge-green   { background: #dcfce7; color: #15803d; }
+.badge-red     { background: #fee2e2; color: #b91c1c; }
+.badge-blue    { background: #dbeafe; color: #1d4ed8; }
+
+.rationale { font-size: 0.75rem; color: #64748b; margin-top: 0.25rem; max-width: 260px; line-height: 1.4; }
+.claude-score { font-weight: 600; font-size: 0.9rem; }
+
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Job Matches — Kelly Zamboni</h1>
+  <div class="meta">36 jobs &middot; Generated 2026-06-11 20:17</div>
+  <div class="controls">
+    <input type="text" id="filter-text" placeholder="Filter title or company&hellip;">
+    <select id="filter-site">
+      <option value="">All sites</option>
+      <option value="adzuna">Adzuna</option>
+    </select>
+    <select id="filter-remote">
+      <option value="">Any location</option>
+      <option value="true">Remote / Hybrid</option>
+      <option value="false">Onsite</option>
+    </select>
+    <label>Min score: <input type="number" id="filter-score" value="0" min="-100" max="200"></label>
+  </div>
+</header>
+<main>
+  <div class="table-wrap">
+    <table id="jobs-table">
+      <thead>
+        <tr>
+          <th class="score-cell" data-sort="score">Score</th>
+          <th>Title / Company</th>
+          <th>Location</th>
+          <th data-sort="salary">Salary</th>
+          <th>Site</th>
+          <th>Signals</th>
+          <th data-sort="fit">Claude Fit</th>
+        </tr>
+      </thead>
+      <tbody id="jobs-body">
+      
+      <tr class="job-row"
+          data-score="65"
+          data-fit="50"
+          data-salary="97733"
+          data-site="adzuna"
+          data-remote="true"
+          data-title="sap instructional designer || remote"
+          data-company="pioneer it systems llc">
+        <td class="score-cell">
+          <span class="score score-mid">65</span>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.adzuna.com/land/ad/5759195586?se=Om22OtJl8RGSwvN1B8zRZw&amp;utm_medium=api&amp;utm_source=3557edba&amp;v=C97CF8440C654102AFC8511A9E7BCD13E0667566" target="_blank" rel="noopener">SAP Instructional Designer || Remote</a>
+          </div>
+          <div class="company-name">Pioneer IT Systems LLC</div>
+        </td>
+        <td>
+          US
+          <br><span class="badge badge-green">Remote/Hybrid</span>
+        </td>
+        <td>$97,733–$97,733</td>
+        <td><span class="badge badge-default">adzuna</span></td>
+        <td>
+          
+            <span class="badge badge-green">+5 Remote or hybrid offered</span>
+          
+            <span class="badge badge-green">+5 Salary ≥$80k ($97,733)</span>
+          
+            <span class="badge badge-green">+5 ADDIE / instructional design methodology</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">50/100</span>
+          
+          <div class="rationale">ranking error</div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="65"
+          data-fit="50"
+          data-salary="91973"
+          data-site="adzuna"
+          data-remote="true"
+          data-title="instructional designer (elearning &amp; curriculum development)"
+          data-company="s3">
+        <td class="score-cell">
+          <span class="score score-mid">65</span>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.adzuna.com/land/ad/5756153358?se=Om22OtJl8RGSwvN1B8zRZw&amp;utm_medium=api&amp;utm_source=3557edba&amp;v=403B1219D941540D82DA28714E5A37EDDA8E9037" target="_blank" rel="noopener">Instructional Designer (eLearning &amp; Curriculum Development)</a>
+          </div>
+          <div class="company-name">S3</div>
+        </td>
+        <td>
+          San Antonio, Bexar County
+          <br><span class="badge badge-green">Remote/Hybrid</span>
+        </td>
+        <td>$91,973–$91,973</td>
+        <td><span class="badge badge-default">adzuna</span></td>
+        <td>
+          
+            <span class="badge badge-green">+5 Remote or hybrid offered</span>
+          
+            <span class="badge badge-green">+5 Salary ≥$80k ($91,973)</span>
+          
+            <span class="badge badge-green">+5 ADDIE / instructional design methodology</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">50/100</span>
+          
+          <div class="rationale">ranking error</div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="60"
+          data-fit="50"
+          data-salary="0"
+          data-site="adzuna"
+          data-remote="true"
+          data-title="instructional designer, rotational program curriculum support (remote)"
+          data-company="rtx">
+        <td class="score-cell">
+          <span class="score score-mid">60</span>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.adzuna.com/land/ad/5759836121?se=Om22OtJl8RGSwvN1B8zRZw&amp;utm_medium=api&amp;utm_source=3557edba&amp;v=16198AFAC5CC6399EEDC7C4B667188775EBF0D42" target="_blank" rel="noopener">Instructional Designer, Rotational Program Curriculum Support (Remote)</a>
+          </div>
+          <div class="company-name">RTX</div>
+        </td>
+        <td>
+          US
+          <br><span class="badge badge-green">Remote/Hybrid</span>
+        </td>
+        <td>—</td>
+        <td><span class="badge badge-default">adzuna</span></td>
+        <td>
+          
+            <span class="badge badge-green">+5 Remote or hybrid offered</span>
+          
+            <span class="badge badge-green">+5 ADDIE / instructional design methodology</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">50/100</span>
+          
+          <div class="rationale">ranking error</div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="60"
+          data-fit="50"
+          data-salary="114400"
+          data-site="adzuna"
+          data-remote="true"
+          data-title="(4) remote elearning / multimedia developers (contract) - advanced storyline required"
+          data-company="capetalent">
+        <td class="score-cell">
+          <span class="score score-mid">60</span>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.adzuna.com/details/5758276933?utm_medium=api&amp;utm_source=3557edba" target="_blank" rel="noopener">(4) REMOTE eLearning / Multimedia Developers (Contract) - Advanced Storyline Required</a>
+          </div>
+          <div class="company-name">CapeTalent</div>
+        </td>
+        <td>
+          Satellite Beach, Brevard County
+          <br><span class="badge badge-green">Remote/Hybrid</span>
+        </td>
+        <td>$114,400–$135,200</td>
+        <td><span class="badge badge-default">adzuna</span></td>
+        <td>
+          
+            <span class="badge badge-green">+5 Remote or hybrid offered</span>
+          
+            <span class="badge badge-green">+5 Salary ≥$80k ($114,400)</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">50/100</span>
+          
+          <div class="rationale">ranking error</div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="58"
+          data-fit="50"
+          data-salary="86732"
+          data-site="adzuna"
+          data-remote="true"
+          data-title="workday learning certified consultant"
+          data-company="p2psofttek inc">
+        <td class="score-cell">
+          <span class="score score-low">58</span>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.adzuna.com/land/ad/5759208651?se=xAwfRNJl8RGSwvN1B8zRZw&amp;utm_medium=api&amp;utm_source=3557edba&amp;v=82E2429FCEE072E99C774E886DAE25D8E6AE471E" target="_blank" rel="noopener">Workday Learning Certified Consultant</a>
+          </div>
+          <div class="company-name">P2PSoftTek Inc</div>
+        </td>
+        <td>
+          US
+          <br><span class="badge badge-green">Remote/Hybrid</span>
+        </td>
+        <td>$86,732–$86,732</td>
+        <td><span class="badge badge-default">adzuna</span></td>
+        <td>
+          
+            <span class="badge badge-green">+8 Senior/lead/consultant title</span>
+          
+            <span class="badge badge-green">+5 Remote or hybrid offered</span>
+          
+            <span class="badge badge-green">+5 Salary ≥$80k ($86,732)</span>
+          
+            <span class="badge badge-red">-10 No eLearning or ID tools mentioned</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">50/100</span>
+          
+          <div class="rationale">ranking error</div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="58"
+          data-fit="50"
+          data-salary="88860"
+          data-site="adzuna"
+          data-remote="true"
+          data-title="leadership development consultant (remote, performance-based)"
+          data-company="meaningful growth co.">
+        <td class="score-cell">
+          <span class="score score-low">58</span>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.adzuna.com/land/ad/5759429517?se=wgOJgNJl8RGSwvN1B8zRZw&amp;utm_medium=api&amp;utm_source=3557edba&amp;v=FB2AF6D0C0EFFD02326FA03486337756FAA0F2A8" target="_blank" rel="noopener">Leadership Development Consultant (Remote, Performance-Based)</a>
+          </div>
+          <div class="company-name">Meaningful Growth Co.</div>
+        </td>
+        <td>
+          Champaign, Champaign County
+          <br><span class="badge badge-green">Remote/Hybrid</span>
+        </td>
+        <td>$88,860–$88,860</td>
+        <td><span class="badge badge-default">adzuna</span></td>
+        <td>
+          
+            <span class="badge badge-green">+8 Senior/lead/consultant title</span>
+          
+            <span class="badge badge-green">+5 Remote or hybrid offered</span>
+          
+            <span class="badge badge-green">+5 Salary ≥$80k ($88,860)</span>
+          
+            <span class="badge badge-red">-10 No eLearning or ID tools mentioned</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">50/100</span>
+          
+          <div class="rationale">ranking error</div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="58"
+          data-fit="50"
+          data-salary="89558"
+          data-site="adzuna"
+          data-remote="true"
+          data-title="leadership development consultant (remote, performance-based)"
+          data-company="meaningful growth co.">
+        <td class="score-cell">
+          <span class="score score-low">58</span>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.adzuna.com/land/ad/5759421261?se=wgOJgNJl8RGSwvN1B8zRZw&amp;utm_medium=api&amp;utm_source=3557edba&amp;v=DA26A7C58427F075C3D08BD74E7FCC74A7846DDE" target="_blank" rel="noopener">Leadership Development Consultant (Remote, Performance-Based)</a>
+          </div>
+          <div class="company-name">Meaningful Growth Co.</div>
+        </td>
+        <td>
+          Chicago, Cook County
+          <br><span class="badge badge-green">Remote/Hybrid</span>
+        </td>
+        <td>$89,558–$89,558</td>
+        <td><span class="badge badge-default">adzuna</span></td>
+        <td>
+          
+            <span class="badge badge-green">+8 Senior/lead/consultant title</span>
+          
+            <span class="badge badge-green">+5 Remote or hybrid offered</span>
+          
+            <span class="badge badge-green">+5 Salary ≥$80k ($89,558)</span>
+          
+            <span class="badge badge-red">-10 No eLearning or ID tools mentioned</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">50/100</span>
+          
+          <div class="rationale">ranking error</div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="58"
+          data-fit="50"
+          data-salary="87328"
+          data-site="adzuna"
+          data-remote="true"
+          data-title="leadership development consultant (remote, performance-based)"
+          data-company="meaningful growth co.">
+        <td class="score-cell">
+          <span class="score score-low">58</span>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.adzuna.com/land/ad/5759400594?se=wgOJgNJl8RGSwvN1B8zRZw&amp;utm_medium=api&amp;utm_source=3557edba&amp;v=D161638BA64DD4237D22E3036B775EF2E3BF7AD8" target="_blank" rel="noopener">Leadership Development Consultant (Remote, Performance-Based)</a>
+          </div>
+          <div class="company-name">Meaningful Growth Co.</div>
+        </td>
+        <td>
+          Aurora, Aurora County
+          <br><span class="badge badge-green">Remote/Hybrid</span>
+        </td>
+        <td>$87,328–$87,328</td>
+        <td><span class="badge badge-default">adzuna</span></td>
+        <td>
+          
+            <span class="badge badge-green">+8 Senior/lead/consultant title</span>
+          
+            <span class="badge badge-green">+5 Remote or hybrid offered</span>
+          
+            <span class="badge badge-green">+5 Salary ≥$80k ($87,328)</span>
+          
+            <span class="badge badge-red">-10 No eLearning or ID tools mentioned</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">50/100</span>
+          
+          <div class="rationale">ranking error</div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="58"
+          data-fit="50"
+          data-salary="87972"
+          data-site="adzuna"
+          data-remote="true"
+          data-title="leadership development consultant (remote, performance-based)"
+          data-company="meaningful growth co.">
+        <td class="score-cell">
+          <span class="score score-low">58</span>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.adzuna.com/land/ad/5759383975?se=wgOJgNJl8RGSwvN1B8zRZw&amp;utm_medium=api&amp;utm_source=3557edba&amp;v=2E1DEFA7924ADEFC43B9D1E23CF7A4B638F60E48" target="_blank" rel="noopener">Leadership Development Consultant (Remote, Performance-Based)</a>
+          </div>
+          <div class="company-name">Meaningful Growth Co.</div>
+        </td>
+        <td>
+          Waukegan, Lake County
+          <br><span class="badge badge-green">Remote/Hybrid</span>
+        </td>
+        <td>$87,972–$87,972</td>
+        <td><span class="badge badge-default">adzuna</span></td>
+        <td>
+          
+            <span class="badge badge-green">+8 Senior/lead/consultant title</span>
+          
+            <span class="badge badge-green">+5 Remote or hybrid offered</span>
+          
+            <span class="badge badge-green">+5 Salary ≥$80k ($87,972)</span>
+          
+            <span class="badge badge-red">-10 No eLearning or ID tools mentioned</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">50/100</span>
+          
+          <div class="rationale">ranking error</div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="58"
+          data-fit="50"
+          data-salary="86476"
+          data-site="adzuna"
+          data-remote="true"
+          data-title="leadership development consultant (remote, performance-based)"
+          data-company="meaningful growth co.">
+        <td class="score-cell">
+          <span class="score score-low">58</span>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.adzuna.com/land/ad/5759371822?se=wgOJgNJl8RGSwvN1B8zRZw&amp;utm_medium=api&amp;utm_source=3557edba&amp;v=9F14C0CF2EA61E1DF4B6FCEABFB00A439A7830FD" target="_blank" rel="noopener">Leadership Development Consultant (Remote, Performance-Based)</a>
+          </div>
+          <div class="company-name">Meaningful Growth Co.</div>
+        </td>
+        <td>
+          Springfield, Effingham County
+          <br><span class="badge badge-green">Remote/Hybrid</span>
+        </td>
+        <td>$86,476–$86,476</td>
+        <td><span class="badge badge-default">adzuna</span></td>
+        <td>
+          
+            <span class="badge badge-green">+8 Senior/lead/consultant title</span>
+          
+            <span class="badge badge-green">+5 Remote or hybrid offered</span>
+          
+            <span class="badge badge-green">+5 Salary ≥$80k ($86,476)</span>
+          
+            <span class="badge badge-red">-10 No eLearning or ID tools mentioned</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">50/100</span>
+          
+          <div class="rationale">ranking error</div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="58"
+          data-fit="50"
+          data-salary="92904"
+          data-site="adzuna"
+          data-remote="true"
+          data-title="leadership development consultant (remote, performance-based)"
+          data-company="meaningful growth co.">
+        <td class="score-cell">
+          <span class="score score-low">58</span>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.adzuna.com/land/ad/5759362910?se=wgOJgNJl8RGSwvN1B8zRZw&amp;utm_medium=api&amp;utm_source=3557edba&amp;v=000FCE50F845727E83C0931CAF923E242CFD3862" target="_blank" rel="noopener">Leadership Development Consultant (Remote, Performance-Based)</a>
+          </div>
+          <div class="company-name">Meaningful Growth Co.</div>
+        </td>
+        <td>
+          Joliet, Will County
+          <br><span class="badge badge-green">Remote/Hybrid</span>
+        </td>
+        <td>$92,904–$92,904</td>
+        <td><span class="badge badge-default">adzuna</span></td>
+        <td>
+          
+            <span class="badge badge-green">+8 Senior/lead/consultant title</span>
+          
+            <span class="badge badge-green">+5 Remote or hybrid offered</span>
+          
+            <span class="badge badge-green">+5 Salary ≥$80k ($92,904)</span>
+          
+            <span class="badge badge-red">-10 No eLearning or ID tools mentioned</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">50/100</span>
+          
+          <div class="rationale">ranking error</div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="58"
+          data-fit="50"
+          data-salary="86560"
+          data-site="adzuna"
+          data-remote="true"
+          data-title="leadership development consultant (remote, performance-based)"
+          data-company="meaningful growth co.">
+        <td class="score-cell">
+          <span class="score score-low">58</span>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.adzuna.com/land/ad/5759362872?se=wgOJgNJl8RGSwvN1B8zRZw&amp;utm_medium=api&amp;utm_source=3557edba&amp;v=19FEF7B100C9C6085F3064F5FC05AA97D8FA961F" target="_blank" rel="noopener">Leadership Development Consultant (Remote, Performance-Based)</a>
+          </div>
+          <div class="company-name">Meaningful Growth Co.</div>
+        </td>
+        <td>
+          Cicero, Cook County
+          <br><span class="badge badge-green">Remote/Hybrid</span>
+        </td>
+        <td>$86,560–$86,560</td>
+        <td><span class="badge badge-default">adzuna</span></td>
+        <td>
+          
+            <span class="badge badge-green">+8 Senior/lead/consultant title</span>
+          
+            <span class="badge badge-green">+5 Remote or hybrid offered</span>
+          
+            <span class="badge badge-green">+5 Salary ≥$80k ($86,560)</span>
+          
+            <span class="badge badge-red">-10 No eLearning or ID tools mentioned</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">50/100</span>
+          
+          <div class="rationale">ranking error</div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="58"
+          data-fit="50"
+          data-salary="90363"
+          data-site="adzuna"
+          data-remote="true"
+          data-title="leadership development consultant (remote, performance-based)"
+          data-company="meaningful growth co.">
+        <td class="score-cell">
+          <span class="score score-low">58</span>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.adzuna.com/land/ad/5759359900?se=wgOJgNJl8RGSwvN1B8zRZw&amp;utm_medium=api&amp;utm_source=3557edba&amp;v=204B76DD16EC8D697E3CCE163EB06B82D48FF012" target="_blank" rel="noopener">Leadership Development Consultant (Remote, Performance-Based)</a>
+          </div>
+          <div class="company-name">Meaningful Growth Co.</div>
+        </td>
+        <td>
+          Rockford, Bingham County
+          <br><span class="badge badge-green">Remote/Hybrid</span>
+        </td>
+        <td>$90,363–$90,363</td>
+        <td><span class="badge badge-default">adzuna</span></td>
+        <td>
+          
+            <span class="badge badge-green">+8 Senior/lead/consultant title</span>
+          
+            <span class="badge badge-green">+5 Remote or hybrid offered</span>
+          
+            <span class="badge badge-green">+5 Salary ≥$80k ($90,363)</span>
+          
+            <span class="badge badge-red">-10 No eLearning or ID tools mentioned</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">50/100</span>
+          
+          <div class="rationale">ranking error</div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="58"
+          data-fit="50"
+          data-salary="93248"
+          data-site="adzuna"
+          data-remote="true"
+          data-title="leadership development consultant (remote, performance-based)"
+          data-company="meaningful growth co.">
+        <td class="score-cell">
+          <span class="score score-low">58</span>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.adzuna.com/land/ad/5759351782?se=wgOJgNJl8RGSwvN1B8zRZw&amp;utm_medium=api&amp;utm_source=3557edba&amp;v=3A2904B9A298BA65FDD72D3D3F29FD294EAEFBF6" target="_blank" rel="noopener">Leadership Development Consultant (Remote, Performance-Based)</a>
+          </div>
+          <div class="company-name">Meaningful Growth Co.</div>
+        </td>
+        <td>
+          Naperville, DuPage County
+          <br><span class="badge badge-green">Remote/Hybrid</span>
+        </td>
+        <td>$93,248–$93,248</td>
+        <td><span class="badge badge-default">adzuna</span></td>
+        <td>
+          
+            <span class="badge badge-green">+8 Senior/lead/consultant title</span>
+          
+            <span class="badge badge-green">+5 Remote or hybrid offered</span>
+          
+            <span class="badge badge-green">+5 Salary ≥$80k ($93,248)</span>
+          
+            <span class="badge badge-red">-10 No eLearning or ID tools mentioned</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">50/100</span>
+          
+          <div class="rationale">ranking error</div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="58"
+          data-fit="50"
+          data-salary="89012"
+          data-site="adzuna"
+          data-remote="true"
+          data-title="leadership development consultant (remote, performance-based)"
+          data-company="meaningful growth co.">
+        <td class="score-cell">
+          <span class="score score-low">58</span>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.adzuna.com/land/ad/5759345714?se=wgOJgNJl8RGSwvN1B8zRZw&amp;utm_medium=api&amp;utm_source=3557edba&amp;v=E4B64DFB13115BFB6438B6EA76AA6AF0CC5709E3" target="_blank" rel="noopener">Leadership Development Consultant (Remote, Performance-Based)</a>
+          </div>
+          <div class="company-name">Meaningful Growth Co.</div>
+        </td>
+        <td>
+          Carol Stream, DuPage County
+          <br><span class="badge badge-green">Remote/Hybrid</span>
+        </td>
+        <td>$89,012–$89,012</td>
+        <td><span class="badge badge-default">adzuna</span></td>
+        <td>
+          
+            <span class="badge badge-green">+8 Senior/lead/consultant title</span>
+          
+            <span class="badge badge-green">+5 Remote or hybrid offered</span>
+          
+            <span class="badge badge-green">+5 Salary ≥$80k ($89,012)</span>
+          
+            <span class="badge badge-red">-10 No eLearning or ID tools mentioned</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">50/100</span>
+          
+          <div class="rationale">ranking error</div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="58"
+          data-fit="50"
+          data-salary="141321"
+          data-site="adzuna"
+          data-remote="true"
+          data-title="aladdin performance business operations &amp; reporting (pbor) consultant"
+          data-company="merican inc">
+        <td class="score-cell">
+          <span class="score score-low">58</span>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.adzuna.com/land/ad/5757414831?se=wgOJgNJl8RGSwvN1B8zRZw&amp;utm_medium=api&amp;utm_source=3557edba&amp;v=C32A9F14FF830D3EC1BA413798ADD7BEDA4EA338" target="_blank" rel="noopener">Aladdin Performance Business Operations &amp; Reporting (PBOR) Consultant</a>
+          </div>
+          <div class="company-name">Merican Inc</div>
+        </td>
+        <td>
+          Massachusetts, US
+          <br><span class="badge badge-green">Remote/Hybrid</span>
+        </td>
+        <td>$141,321–$141,321</td>
+        <td><span class="badge badge-default">adzuna</span></td>
+        <td>
+          
+            <span class="badge badge-green">+8 Senior/lead/consultant title</span>
+          
+            <span class="badge badge-green">+5 Remote or hybrid offered</span>
+          
+            <span class="badge badge-green">+5 Salary ≥$80k ($141,321)</span>
+          
+            <span class="badge badge-red">-10 No eLearning or ID tools mentioned</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">50/100</span>
+          
+          <div class="rationale">ranking error</div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="53"
+          data-fit="50"
+          data-salary="111636"
+          data-site="adzuna"
+          data-remote="false"
+          data-title="senior project manager - civil engineer"
+          data-company="city of prairie village">
+        <td class="score-cell">
+          <span class="score score-low">53</span>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.adzuna.com/details/5759604162?utm_medium=api&amp;utm_source=3557edba" target="_blank" rel="noopener">Senior Project Manager - Civil Engineer</a>
+          </div>
+          <div class="company-name">City Of Prairie Village</div>
+        </td>
+        <td>
+          Prairie Village, Johnson County
+          
+        </td>
+        <td>$111,636–$150,709</td>
+        <td><span class="badge badge-default">adzuna</span></td>
+        <td>
+          
+            <span class="badge badge-green">+8 Senior/lead/consultant title</span>
+          
+            <span class="badge badge-green">+5 Salary ≥$80k ($111,636)</span>
+          
+            <span class="badge badge-red">-10 No eLearning or ID tools mentioned</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">50/100</span>
+          
+          <div class="rationale">ranking error</div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="53"
+          data-fit="50"
+          data-salary="200359"
+          data-site="adzuna"
+          data-remote="false"
+          data-title="epic payer platform business consultant, senior associate"
+          data-company="pwc">
+        <td class="score-cell">
+          <span class="score score-low">53</span>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.adzuna.com/land/ad/5755913453?se=sr7CfdJl8RGx4qIU2AAFvg&amp;utm_medium=api&amp;utm_source=3557edba&amp;v=2D1C7DF04E1474B56B5A1DCFBE0886CC1D41409F" target="_blank" rel="noopener">Epic Payer Platform Business Consultant, Senior Associate</a>
+          </div>
+          <div class="company-name">PwC</div>
+        </td>
+        <td>
+          Kansas City, Jackson County
+          
+        </td>
+        <td>$200,359–$200,359</td>
+        <td><span class="badge badge-default">adzuna</span></td>
+        <td>
+          
+            <span class="badge badge-green">+8 Senior/lead/consultant title</span>
+          
+            <span class="badge badge-green">+5 Salary ≥$80k ($200,359)</span>
+          
+            <span class="badge badge-red">-10 No eLearning or ID tools mentioned</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">50/100</span>
+          
+          <div class="rationale">ranking error</div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="53"
+          data-fit="50"
+          data-salary="213511"
+          data-site="adzuna"
+          data-remote="false"
+          data-title="epic payer platform business consultant, manager"
+          data-company="pwc">
+        <td class="score-cell">
+          <span class="score score-low">53</span>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.adzuna.com/land/ad/5755913451?se=sr7CfdJl8RGx4qIU2AAFvg&amp;utm_medium=api&amp;utm_source=3557edba&amp;v=D3B73F8A7290B4F53D24E0E35186346B1CE979F0" target="_blank" rel="noopener">Epic Payer Platform Business Consultant, Manager</a>
+          </div>
+          <div class="company-name">PwC</div>
+        </td>
+        <td>
+          Kansas City, Jackson County
+          
+        </td>
+        <td>$213,511–$213,511</td>
+        <td><span class="badge badge-default">adzuna</span></td>
+        <td>
+          
+            <span class="badge badge-green">+8 Senior/lead/consultant title</span>
+          
+            <span class="badge badge-green">+5 Salary ≥$80k ($213,511)</span>
+          
+            <span class="badge badge-red">-10 No eLearning or ID tools mentioned</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">50/100</span>
+          
+          <div class="rationale">ranking error</div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="53"
+          data-fit="50"
+          data-salary="226948"
+          data-site="adzuna"
+          data-remote="false"
+          data-title="payer quality consultant, director"
+          data-company="pwc">
+        <td class="score-cell">
+          <span class="score score-low">53</span>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.adzuna.com/land/ad/5755913449?se=sr7CfdJl8RGx4qIU2AAFvg&amp;utm_medium=api&amp;utm_source=3557edba&amp;v=0BE7C311D0823E56E891F27CB9E7B19870F5AB3E" target="_blank" rel="noopener">Payer Quality Consultant, Director</a>
+          </div>
+          <div class="company-name">PwC</div>
+        </td>
+        <td>
+          Kansas City, Jackson County
+          
+        </td>
+        <td>$226,948–$226,948</td>
+        <td><span class="badge badge-default">adzuna</span></td>
+        <td>
+          
+            <span class="badge badge-green">+8 Senior/lead/consultant title</span>
+          
+            <span class="badge badge-green">+5 Salary ≥$80k ($226,948)</span>
+          
+            <span class="badge badge-red">-10 No eLearning or ID tools mentioned</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">50/100</span>
+          
+          <div class="rationale">ranking error</div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="48"
+          data-fit="50"
+          data-salary="73629"
+          data-site="adzuna"
+          data-remote="true"
+          data-title="ocm consultant"
+          data-company="ntt data americas, inc.">
+        <td class="score-cell">
+          <span class="score score-low">48</span>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.adzuna.com/details/5757831769?utm_medium=api&amp;utm_source=3557edba" target="_blank" rel="noopener">OCM Consultant</a>
+          </div>
+          <div class="company-name">NTT Data Americas, Inc.</div>
+        </td>
+        <td>
+          Plano, Collin County
+          <br><span class="badge badge-green">Remote/Hybrid</span>
+        </td>
+        <td>$73,629–$73,629</td>
+        <td><span class="badge badge-default">adzuna</span></td>
+        <td>
+          
+            <span class="badge badge-green">+10 OCM / change management required</span>
+          
+            <span class="badge badge-green">+8 Senior/lead/consultant title</span>
+          
+            <span class="badge badge-green">+5 Remote or hybrid offered</span>
+          
+            <span class="badge badge-red">-15 Salary &lt;$80k ($73,629)</span>
+          
+            <span class="badge badge-red">-10 No eLearning or ID tools mentioned</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">50/100</span>
+          
+          <div class="rationale">ranking error</div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="45"
+          data-fit="50"
+          data-salary="138580"
+          data-site="adzuna"
+          data-remote="false"
+          data-title="assistant electrical designer (kansas city)"
+          data-company="burns &amp; mcdonnell">
+        <td class="score-cell">
+          <span class="score score-low">45</span>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.adzuna.com/land/ad/5759361587?se=ON3MONJl8RGx4qIU2AAFvg&amp;utm_medium=api&amp;utm_source=3557edba&amp;v=145CD1819556648CDE676258CDDF9CAF973D3109" target="_blank" rel="noopener">Assistant Electrical Designer (Kansas City)</a>
+          </div>
+          <div class="company-name">Burns &amp; McDonnell</div>
+        </td>
+        <td>
+          Kansas City, Jackson County
+          
+        </td>
+        <td>$138,580–$138,580</td>
+        <td><span class="badge badge-default">adzuna</span></td>
+        <td>
+          
+            <span class="badge badge-green">+5 Salary ≥$80k ($138,580)</span>
+          
+            <span class="badge badge-red">-10 No eLearning or ID tools mentioned</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">50/100</span>
+          
+          <div class="rationale">ranking error</div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="45"
+          data-fit="50"
+          data-salary="107115"
+          data-site="adzuna"
+          data-remote="false"
+          data-title="nursing professional development specialist"
+          data-company="the university of kansas health system">
+        <td class="score-cell">
+          <span class="score score-low">45</span>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.adzuna.com/details/5760199879?utm_medium=api&amp;utm_source=3557edba" target="_blank" rel="noopener">Nursing Professional Development Specialist</a>
+          </div>
+          <div class="company-name">The University of Kansas Health System</div>
+        </td>
+        <td>
+          Kansas City, Wyandotte County
+          
+        </td>
+        <td>$107,115–$107,115</td>
+        <td><span class="badge badge-default">adzuna</span></td>
+        <td>
+          
+            <span class="badge badge-green">+5 Salary ≥$80k ($107,115)</span>
+          
+            <span class="badge badge-red">-10 No eLearning or ID tools mentioned</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">50/100</span>
+          
+          <div class="rationale">ranking error</div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="45"
+          data-fit="50"
+          data-salary="71920"
+          data-site="adzuna"
+          data-remote="true"
+          data-title="instructional designer / elearning developer"
+          data-company="the computer merchant, ltd">
+        <td class="score-cell">
+          <span class="score score-low">45</span>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.adzuna.com/land/ad/5759679193?se=Om22OtJl8RGSwvN1B8zRZw&amp;utm_medium=api&amp;utm_source=3557edba&amp;v=DC72D131CBD7A30B45510E54C584D836E7CF3B6D" target="_blank" rel="noopener">Instructional Designer / eLearning Developer</a>
+          </div>
+          <div class="company-name">The Computer Merchant, Ltd</div>
+        </td>
+        <td>
+          US
+          <br><span class="badge badge-green">Remote/Hybrid</span>
+        </td>
+        <td>$71,920–$71,920</td>
+        <td><span class="badge badge-default">adzuna</span></td>
+        <td>
+          
+            <span class="badge badge-green">+5 Remote or hybrid offered</span>
+          
+            <span class="badge badge-red">-15 Salary &lt;$80k ($71,920)</span>
+          
+            <span class="badge badge-green">+5 ADDIE / instructional design methodology</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">50/100</span>
+          
+          <div class="rationale">ranking error</div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="33"
+          data-fit="50"
+          data-salary="33280"
+          data-site="adzuna"
+          data-remote="false"
+          data-title="toddler lead teacher"
+          data-company="world builders academy">
+        <td class="score-cell">
+          <span class="score score-low">33</span>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.adzuna.com/details/5758580629?utm_medium=api&amp;utm_source=3557edba" target="_blank" rel="noopener">Toddler Lead Teacher</a>
+          </div>
+          <div class="company-name">World Builders Academy</div>
+        </td>
+        <td>
+          Weatherby Lake, Platte County
+          
+        </td>
+        <td>$33,280–$37,440</td>
+        <td><span class="badge badge-default">adzuna</span></td>
+        <td>
+          
+            <span class="badge badge-green">+8 Senior/lead/consultant title</span>
+          
+            <span class="badge badge-red">-15 Salary &lt;$80k ($33,280)</span>
+          
+            <span class="badge badge-red">-10 No eLearning or ID tools mentioned</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">50/100</span>
+          
+          <div class="rationale">ranking error</div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="33"
+          data-fit="50"
+          data-salary="37177"
+          data-site="adzuna"
+          data-remote="false"
+          data-title="sales consultant"
+          data-company="big o tires">
+        <td class="score-cell">
+          <span class="score score-low">33</span>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.adzuna.com/details/5756976956?utm_medium=api&amp;utm_source=3557edba" target="_blank" rel="noopener">Sales Consultant</a>
+          </div>
+          <div class="company-name">Big O Tires</div>
+        </td>
+        <td>
+          Raytown, Jackson County
+          
+        </td>
+        <td>$37,177–$37,177</td>
+        <td><span class="badge badge-default">adzuna</span></td>
+        <td>
+          
+            <span class="badge badge-green">+8 Senior/lead/consultant title</span>
+          
+            <span class="badge badge-red">-15 Salary &lt;$80k ($37,177)</span>
+          
+            <span class="badge badge-red">-10 No eLearning or ID tools mentioned</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">50/100</span>
+          
+          <div class="rationale">ranking error</div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="33"
+          data-fit="50"
+          data-salary="31786"
+          data-site="adzuna"
+          data-remote="false"
+          data-title="sales consultant"
+          data-company="mfa oil">
+        <td class="score-cell">
+          <span class="score score-low">33</span>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.adzuna.com/details/5758136419?utm_medium=api&amp;utm_source=3557edba" target="_blank" rel="noopener">Sales Consultant</a>
+          </div>
+          <div class="company-name">MFA Oil</div>
+        </td>
+        <td>
+          Kansas City, Wyandotte County
+          
+        </td>
+        <td>$31,786–$31,786</td>
+        <td><span class="badge badge-default">adzuna</span></td>
+        <td>
+          
+            <span class="badge badge-green">+8 Senior/lead/consultant title</span>
+          
+            <span class="badge badge-red">-15 Salary &lt;$80k ($31,786)</span>
+          
+            <span class="badge badge-red">-10 No eLearning or ID tools mentioned</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">50/100</span>
+          
+          <div class="rationale">ranking error</div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="30"
+          data-fit="50"
+          data-salary="63210"
+          data-site="adzuna"
+          data-remote="true"
+          data-title="special education teacher - willamette connections academy"
+          data-company="connections academy">
+        <td class="score-cell">
+          <span class="score score-low">30</span>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.adzuna.com/land/ad/5757993193?se=Om22OtJl8RGSwvN1B8zRZw&amp;utm_medium=api&amp;utm_source=3557edba&amp;v=6564BA21DB23586B823286FF712F5ABE512D5E6A" target="_blank" rel="noopener">Special Education Teacher - Willamette Connections Academy</a>
+          </div>
+          <div class="company-name">Connections Academy</div>
+        </td>
+        <td>
+          US
+          <br><span class="badge badge-green">Remote/Hybrid</span>
+        </td>
+        <td>$63,210–$63,210</td>
+        <td><span class="badge badge-default">adzuna</span></td>
+        <td>
+          
+            <span class="badge badge-green">+5 Remote or hybrid offered</span>
+          
+            <span class="badge badge-red">-15 Salary &lt;$80k ($63,210)</span>
+          
+            <span class="badge badge-red">-10 No eLearning or ID tools mentioned</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">50/100</span>
+          
+          <div class="rationale">ranking error</div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="30"
+          data-fit="50"
+          data-salary="52090"
+          data-site="adzuna"
+          data-remote="true"
+          data-title="instructional design and facilitation intern"
+          data-company="american air filter international">
+        <td class="score-cell">
+          <span class="score score-low">30</span>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.adzuna.com/details/5755255810?utm_medium=api&amp;utm_source=3557edba" target="_blank" rel="noopener">Instructional Design and Facilitation INTERN</a>
+          </div>
+          <div class="company-name">American Air Filter International</div>
+        </td>
+        <td>
+          US
+          <br><span class="badge badge-green">Remote/Hybrid</span>
+        </td>
+        <td>$52,090–$52,090</td>
+        <td><span class="badge badge-default">adzuna</span></td>
+        <td>
+          
+            <span class="badge badge-green">+5 Remote or hybrid offered</span>
+          
+            <span class="badge badge-red">-15 Salary &lt;$80k ($52,090)</span>
+          
+            <span class="badge badge-green">+5 ADDIE / instructional design methodology</span>
+          
+            <span class="badge badge-red">-15 Entry-level / junior title</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">50/100</span>
+          
+          <div class="rationale">ranking error</div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="30"
+          data-fit="50"
+          data-salary="74368"
+          data-site="adzuna"
+          data-remote="true"
+          data-title="learning experience designer (lxd)"
+          data-company="puzzle solutions holdings llc">
+        <td class="score-cell">
+          <span class="score score-low">30</span>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.adzuna.com/details/5759803237?utm_medium=api&amp;utm_source=3557edba" target="_blank" rel="noopener">Learning Experience Designer (LXD)</a>
+          </div>
+          <div class="company-name">Puzzle Solutions Holdings LLC</div>
+        </td>
+        <td>
+          Princeton, Mercer County
+          <br><span class="badge badge-green">Remote/Hybrid</span>
+        </td>
+        <td>$74,368–$74,368</td>
+        <td><span class="badge badge-default">adzuna</span></td>
+        <td>
+          
+            <span class="badge badge-green">+5 Remote or hybrid offered</span>
+          
+            <span class="badge badge-red">-15 Salary &lt;$80k ($74,368)</span>
+          
+            <span class="badge badge-red">-10 No eLearning or ID tools mentioned</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">50/100</span>
+          
+          <div class="rationale">ranking error</div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="30"
+          data-fit="50"
+          data-salary="67401"
+          data-site="adzuna"
+          data-remote="true"
+          data-title="tpm/trainer"
+          data-company="software technology inc">
+        <td class="score-cell">
+          <span class="score score-low">30</span>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.adzuna.com/land/ad/5759895712?se=5jWedNJl8RGSwvN1B8zRZw&amp;utm_medium=api&amp;utm_source=3557edba&amp;v=53D29473E923831488AE648A550F3E3F0B07DBBD" target="_blank" rel="noopener">TPM/Trainer</a>
+          </div>
+          <div class="company-name">Software Technology Inc</div>
+        </td>
+        <td>
+          US
+          <br><span class="badge badge-green">Remote/Hybrid</span>
+        </td>
+        <td>$67,401–$67,401</td>
+        <td><span class="badge badge-default">adzuna</span></td>
+        <td>
+          
+            <span class="badge badge-green">+5 Remote or hybrid offered</span>
+          
+            <span class="badge badge-red">-15 Salary &lt;$80k ($67,401)</span>
+          
+            <span class="badge badge-red">-10 No eLearning or ID tools mentioned</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">50/100</span>
+          
+          <div class="rationale">ranking error</div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="25"
+          data-fit="50"
+          data-salary="51153"
+          data-site="adzuna"
+          data-remote="false"
+          data-title="instructional design coordinator i"
+          data-company="kansas city kansas community college">
+        <td class="score-cell">
+          <span class="score score-low">25</span>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.adzuna.com/details/5756163236?utm_medium=api&amp;utm_source=3557edba" target="_blank" rel="noopener">Instructional Design Coordinator I</a>
+          </div>
+          <div class="company-name">Kansas City Kansas Community College</div>
+        </td>
+        <td>
+          Kansas, Wyandotte County
+          
+        </td>
+        <td>$51,153–$70,337</td>
+        <td><span class="badge badge-default">adzuna</span></td>
+        <td>
+          
+            <span class="badge badge-red">-15 Salary &lt;$80k ($51,153)</span>
+          
+            <span class="badge badge-green">+5 ADDIE / instructional design methodology</span>
+          
+            <span class="badge badge-red">-15 Entry-level / junior title</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">50/100</span>
+          
+          <div class="rationale">ranking error</div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="25"
+          data-fit="50"
+          data-salary="65950"
+          data-site="adzuna"
+          data-remote="false"
+          data-title="sy 26-27 math/science cas middle school teacher"
+          data-company="center school district">
+        <td class="score-cell">
+          <span class="score score-low">25</span>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.adzuna.com/details/5755268078?utm_medium=api&amp;utm_source=3557edba" target="_blank" rel="noopener">SY 26-27 Math/Science CAS Middle School Teacher</a>
+          </div>
+          <div class="company-name">Center School District</div>
+        </td>
+        <td>
+          Kansas City, Jackson County
+          
+        </td>
+        <td>$65,950–$65,950</td>
+        <td><span class="badge badge-default">adzuna</span></td>
+        <td>
+          
+            <span class="badge badge-red">-15 Salary &lt;$80k ($65,950)</span>
+          
+            <span class="badge badge-red">-10 No eLearning or ID tools mentioned</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">50/100</span>
+          
+          <div class="rationale">ranking error</div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="25"
+          data-fit="50"
+          data-salary="44670"
+          data-site="adzuna"
+          data-remote="false"
+          data-title="technical trainer"
+          data-company="tes recruiting">
+        <td class="score-cell">
+          <span class="score score-low">25</span>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.adzuna.com/land/ad/5759433479?se=PhJdctJl8RG1SumIcG7pVg&amp;utm_medium=api&amp;utm_source=3557edba&amp;v=BD503440269EE5A90EC9263BB6E2EACA0DE7D615" target="_blank" rel="noopener">Technical Trainer</a>
+          </div>
+          <div class="company-name">TES Recruiting</div>
+        </td>
+        <td>
+          Kansas City, Wyandotte County
+          
+        </td>
+        <td>$44,670–$44,670</td>
+        <td><span class="badge badge-default">adzuna</span></td>
+        <td>
+          
+            <span class="badge badge-red">-15 Salary &lt;$80k ($44,670)</span>
+          
+            <span class="badge badge-red">-10 No eLearning or ID tools mentioned</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">50/100</span>
+          
+          <div class="rationale">ranking error</div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="25"
+          data-fit="50"
+          data-salary="95705"
+          data-site="adzuna"
+          data-remote="false"
+          data-title="maintenance technician - grandview area"
+          data-company="niagara water">
+        <td class="score-cell">
+          <span class="score score-low">25</span>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.adzuna.com/details/5759372207?utm_medium=api&amp;utm_source=3557edba" target="_blank" rel="noopener">Maintenance Technician - Grandview Area</a>
+          </div>
+          <div class="company-name">Niagara Water</div>
+        </td>
+        <td>
+          Kansas City, Jackson County
+          
+        </td>
+        <td>$95,705–$95,705</td>
+        <td><span class="badge badge-default">adzuna</span></td>
+        <td>
+          
+            <span class="badge badge-green">+5 Salary ≥$80k ($95,705)</span>
+          
+            <span class="badge badge-red">-20 HR generalist (no L&amp;D focus)</span>
+          
+            <span class="badge badge-red">-10 No eLearning or ID tools mentioned</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">50/100</span>
+          
+          <div class="rationale">ranking error</div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="25"
+          data-fit="50"
+          data-salary="70000"
+          data-site="adzuna"
+          data-remote="false"
+          data-title="technical trainer"
+          data-company="genetec">
+        <td class="score-cell">
+          <span class="score score-low">25</span>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.adzuna.com/details/5756674444?utm_medium=api&amp;utm_source=3557edba" target="_blank" rel="noopener">Technical Trainer</a>
+          </div>
+          <div class="company-name">Genetec</div>
+        </td>
+        <td>
+          Kansas City, Jackson County
+          
+        </td>
+        <td>$70,000–$110,000</td>
+        <td><span class="badge badge-default">adzuna</span></td>
+        <td>
+          
+            <span class="badge badge-red">-15 Salary &lt;$80k ($70,000)</span>
+          
+            <span class="badge badge-red">-10 No eLearning or ID tools mentioned</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">50/100</span>
+          
+          <div class="rationale">ranking error</div>
+          
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+</main>
+<script nonce="ac2b1f119941e62538e2b343b9d5b505">
+(function () {
+  const tbody = document.getElementById('jobs-body');
+  let rows = [...tbody.querySelectorAll('.job-row')];
+  let sortCol = 'score', sortAsc = false;
+
+  function applyAll() {
+    const text = document.getElementById('filter-text').value.toLowerCase();
+    const site = document.getElementById('filter-site').value;
+    const remote = document.getElementById('filter-remote').value;
+    const minScore = parseFloat(document.getElementById('filter-score').value) || -Infinity;
+
+    rows.forEach(r => {
+      const visible =
+        (!text || r.dataset.title.includes(text) || r.dataset.company.includes(text)) &&
+        (!site || r.dataset.site === site) &&
+        (!remote || r.dataset.remote === remote) &&
+        parseFloat(r.dataset.score) >= minScore;
+      r.classList.toggle('hidden', !visible);
+    });
+  }
+
+  function sortRows(col) {
+    if (sortCol === col) { sortAsc = !sortAsc; } else { sortCol = col; sortAsc = false; }
+    rows.sort((a, b) => {
+      let va = a.dataset[col], vb = b.dataset[col];
+      if (col !== 'title') { va = parseFloat(va) || 0; vb = parseFloat(vb) || 0; }
+      if (va < vb) return sortAsc ? -1 : 1;
+      if (va > vb) return sortAsc ? 1 : -1;
+      return 0;
+    });
+    rows.forEach(r => tbody.appendChild(r));
+  }
+
+  ['filter-text', 'filter-site', 'filter-remote', 'filter-score'].forEach(id =>
+    document.getElementById(id).addEventListener('input', applyAll)
+  );
+  document.querySelectorAll('th[data-sort]').forEach(th =>
+    th.addEventListener('click', () => sortRows(th.dataset.sort))
+  );
+
+  sortRows('score');
+})();
+</script>
+</body>
+</html>
