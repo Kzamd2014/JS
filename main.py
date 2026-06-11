@@ -11,7 +11,6 @@ from pathlib import Path
 from config import ALL_TITLES, OUTPUT_DIR, LOCATIONS
 from scrapers.adzuna import AdzunaScraper
 from scrapers.google_jobs import GoogleJobsScraper
-from scrapers.hiringcafe import HiringCafeScraper
 from scrapers.base import dedupe_jobs
 from scorer import score as rule_score
 from ranker import rank_jobs
@@ -27,7 +26,6 @@ def _atomic_write(path: Path, content: str) -> None:
 SCRAPERS = {
     "adzuna": AdzunaScraper,
     "google_jobs": GoogleJobsScraper,
-    "hiringcafe": HiringCafeScraper,
 }
 
 
