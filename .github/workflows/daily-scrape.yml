@@ -50,7 +50,6 @@ jobs:
       - name: Write secrets to disk
         run: |
           printf 'ANTHROPIC_API_KEY=%s\n' "$ANTHROPIC_API_KEY"  > .env
-          printf 'SERPAPI_KEY=%s\n'       "$SERPAPI_KEY"        >> .env
           printf 'ADZUNA_APP_ID=%s\n'     "$ADZUNA_APP_ID"      >> .env
           printf 'ADZUNA_APP_KEY=%s\n'    "$ADZUNA_APP_KEY"     >> .env
           printf 'NOTIFY_EMAIL=%s\n'      "$NOTIFY_EMAIL"       >> .env
@@ -59,7 +58,6 @@ jobs:
           printf '%s' "$RESUME_TXT" > data/resume.txt
         env:
           ANTHROPIC_API_KEY:   ${{ secrets.ANTHROPIC_API_KEY }}
-          SERPAPI_KEY:         ${{ secrets.SERPAPI_KEY }}
           ADZUNA_APP_ID:       ${{ secrets.ADZUNA_APP_ID }}
           ADZUNA_APP_KEY:      ${{ secrets.ADZUNA_APP_KEY }}
           NOTIFY_EMAIL:        ${{ secrets.NOTIFY_EMAIL }}
