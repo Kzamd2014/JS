@@ -60,7 +60,7 @@ jobs:
         env:
           ANTHROPIC_API_KEY:   ${{ secrets.ANTHROPIC_API_KEY }}
           ADZUNA_APP_ID:       ${{ secrets.ADZUNA_APP_ID }}
-          ADZUNA_APP_KEY:      ${{ secrets.ADZUNA_APP_KEY }}
+          ADZUNA_APP_KEY:      ${{ secrets.ADZUNA_API }}
           NOTIFY_EMAIL:        ${{ secrets.NOTIFY_EMAIL }}
           GMAIL_APP_PASSWORD:  ${{ secrets.GMAIL_APP_PASSWORD }}
           RESUME_TXT:          ${{ secrets.RESUME_TXT }}
