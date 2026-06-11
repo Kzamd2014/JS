@@ -9,3 +9,4 @@ output/ranked_*.json
 output/scores_cache.json
 data/resume.txt
 .DS_Store
+.vscode/
