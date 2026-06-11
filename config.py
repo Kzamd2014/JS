@@ -6,6 +6,8 @@ load_dotenv()
 
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 SERPAPI_KEY = os.getenv("SERPAPI_KEY", "")
+ADZUNA_APP_ID = os.getenv("ADZUNA_APP_ID", "")
+ADZUNA_APP_KEY = os.getenv("ADZUNA_APP_KEY", "")
 LINKEDIN_COOKIES = os.getenv("LINKEDIN_COOKIES", "")
 GLASSDOOR_COOKIES = os.getenv("GLASSDOOR_COOKIES", "")
 
