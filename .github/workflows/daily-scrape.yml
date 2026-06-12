@@ -103,7 +103,7 @@ jobs:
           files = sorted(glob.glob('output/ranked_*.json'))
           jobs  = json.loads(open(files[-1]).read()) if files else []
           top   = jobs[:10]
-          dashboard_url = 'https://kzamd2014.github.io/job-scraper/dashboard.html'
+          dashboard_url = 'https://kzamd2014.github.io/JS/dashboard.html'
           lines = [f"Top {len(top)} matches for {datetime.date.today().isoformat()} ({len(jobs)} total scraped):\n"]
           for i, j in enumerate(top, 1):
               lines.append(f"{i}. [{j.get('final_score','?')}] {j.get('title')} @ {j.get('company')} — {j.get('location')}")
