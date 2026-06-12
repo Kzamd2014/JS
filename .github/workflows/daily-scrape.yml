@@ -1,8 +1,8 @@
 name: Daily Job Scrape
 
 on:
-  schedule:
-    - cron: '0 13 * * 1-5'  # 7am CT weekdays (UTC-6 standard / UTC-5 daylight)
+  # schedule:
+  #   - cron: '0 13 * * 1-5'  # 7am CT weekdays (UTC-6 standard / UTC-5 daylight) — paused until scraper errors are fixed
   workflow_dispatch:          # manual trigger from the Actions tab
 
 jobs:
