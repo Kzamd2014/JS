@@ -46,7 +46,10 @@ class BaseScraper(ABC):
     async def scrape(self, titles: list[str], locations: list[str]) -> list[dict]:
         jobs: list[dict] = []
         async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True)
+            browser = await p.chromium.launch(
+                headless=True,
+                args=["--no-sandbox", "--disable-dev-shm-usage"],
+            )
             context = await self._make_context(browser)
             try:
                 for title in titles:
