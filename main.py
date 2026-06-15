@@ -10,7 +10,6 @@ from pathlib import Path
 
 from config import ALL_TITLES, OUTPUT_DIR, LOCATIONS
 from scrapers.adzuna import AdzunaScraper
-from scrapers.google_jobs import GoogleJobsScraper
 from scrapers.base import dedupe_jobs
 from scorer import score as rule_score
 from ranker import rank_jobs
@@ -25,7 +24,6 @@ def _atomic_write(path: Path, content: str) -> None:
 
 SCRAPERS = {
     "adzuna": AdzunaScraper,
-    "google_jobs": GoogleJobsScraper,
 }
 
 
@@ -94,7 +92,7 @@ def cmd_rank(args):
     ranked_path = OUTPUT_DIR / f"ranked_{ts}.json"
     _atomic_write(ranked_path, json.dumps(ranked, indent=2))
     print(f"Saved ranked results → {ranked_path}")
-    generate(ranked, OUTPUT_DIR / "dashboard.html")
+    generate(ranked, OUTPUT_DIR / "index.html")
 
 
 def cmd_run(args):
@@ -103,7 +101,7 @@ def cmd_run(args):
         print("\nERROR: All scrapers returned 0 jobs — aborting pipeline.")
         sys.exit(1)
     cmd_rank(args)
-    print(f"\nDone. Open output/dashboard.html in your browser.")
+    print(f"\nDone. Open output/index.html in your browser.")
 
 
 def main():
