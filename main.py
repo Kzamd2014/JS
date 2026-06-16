@@ -8,7 +8,7 @@ import traceback
 from datetime import datetime
 from pathlib import Path
 
-from config import ALL_TITLES, OUTPUT_DIR, LOCATIONS
+from config import ALL_TITLES, PRIMARY_TITLES, OUTPUT_DIR, LOCATIONS
 from scrapers.adzuna import AdzunaScraper
 from scrapers.hiringcafe import HiringCafeScraper
 from scrapers.base import dedupe_jobs
@@ -49,7 +49,10 @@ async def _run_scrapers(site: str | None) -> list[dict]:
                 print(f"  [{name}] Cache read failed ({e}) — re-scraping")
         try:
             scraper = cls()
-            jobs = await scraper.scrape(ALL_TITLES, LOCATIONS)
+            # HiringCafe is slow (~40s/query) — primary titles + remote only (Adzuna covers KC)
+            titles = PRIMARY_TITLES if name == "hiringcafe" else ALL_TITLES
+            locations = ["remote"] if name == "hiringcafe" else LOCATIONS
+            jobs = await scraper.scrape(titles, locations)
         except Exception as e:
             print(f"  [{name}] Scraper failed: {type(e).__name__}: {e}\n{traceback.format_exc()}")
             jobs = []

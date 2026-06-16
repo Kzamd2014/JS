@@ -5,6 +5,7 @@ Search uses a JSON searchState URL parameter.
 """
 import asyncio
 import json
+import random
 import re
 import urllib.parse
 from playwright.async_api import BrowserContext
@@ -63,6 +64,9 @@ _EXTRACT_JOB_JS = """() => {
 class HiringCafeScraper(BaseScraper):
     site_name = "hiringcafe"
 
+    async def _delay(self):
+        await asyncio.sleep(random.uniform(1, 2))
+
     async def _search(self, context: BrowserContext, title: str, location: str) -> list[dict]:
         is_remote = location.lower() == "remote"
         search_state: dict = {"searchQuery": title}
@@ -77,7 +81,7 @@ class HiringCafeScraper(BaseScraper):
         try:
             try:
                 await page.goto(url, wait_until="domcontentloaded", timeout=30000)
-                await asyncio.sleep(3)  # let JS render job cards
+                await asyncio.sleep(1)  # let JS render job cards
             except TargetClosedError:
                 return []
             await self._delay()
@@ -103,7 +107,7 @@ class HiringCafeScraper(BaseScraper):
                 for job_url in hrefs:
                     try:
                         await detail_page.goto(job_url, wait_until="domcontentloaded", timeout=20000)
-                        await asyncio.sleep(2)
+                        await asyncio.sleep(1)
                         await self._delay()
 
                         data = await detail_page.evaluate(_EXTRACT_JOB_JS)
