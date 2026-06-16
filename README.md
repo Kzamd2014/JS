@@ -1,11 +1,12 @@
 # Job Scraper
 
-Scrapes job listings from LinkedIn, Indeed, Glassdoor, Wellfound, and Hiring Cafe, then scores each one against a resume using a two-layer ranking system: rule-based point adjustments followed by Claude API semantic scoring. Output is a filterable, sortable HTML dashboard.
+Scrapes job listings from Adzuna (REST API) and Hiring Cafe (Playwright), then scores each one against a resume using a two-layer ranking system: rule-based point adjustments followed by Claude API semantic scoring. Output is a filterable, sortable HTML dashboard.
 
 ## Requirements
 
 - Python 3.12+
 - An [Anthropic API key](https://console.anthropic.com)
+- An [Adzuna API key](https://developer.adzuna.com) (free tier: 1,000 calls/month)
 
 ## Setup
 
@@ -14,24 +15,24 @@ pip install -r requirements.txt
 playwright install chromium
 
 cp .env.example .env
-# Add your ANTHROPIC_API_KEY to .env
+# Add your API keys to .env
 ```
 
 ## Usage
 
 ```bash
-# Full pipeline: scrape all sites → score → generate dashboard
+# Full pipeline: scrape → score → generate dashboard
 python main.py run
 
 # Scrape only (saves raw JSON to output/)
 python main.py scrape
-python main.py scrape --site indeed   # one site at a time
+python main.py scrape --site adzuna     # one site at a time
 
 # Score and rank previously scraped results
 python main.py rank
 ```
 
-Open `output/dashboard.html` in a browser when done.
+Open `output/index.html` in a browser when done.
 
 ## Configuration
 
@@ -40,22 +41,16 @@ All configuration is in `.env`. Copy `.env.example` to get started.
 | Variable | Required | Description |
 |---|---|---|
 | `ANTHROPIC_API_KEY` | Yes | Used for semantic job scoring |
-| `LINKEDIN_COOKIES` | No | JSON cookie array for authenticated LinkedIn scraping (see below) |
-| `GLASSDOOR_COOKIES` | No | JSON cookie array for full Glassdoor job descriptions |
-
-**To export LinkedIn cookies:**
-1. Log in to linkedin.com in Chrome
-2. Open DevTools → Application → Cookies → `linkedin.com`
-3. Export all cookies as a JSON array (e.g. via the [EditThisCookie](https://chrome.google.com/webstore/detail/editthiscookie/fngmhnnpilhplaeedifhccceomclgfbg) extension)
-4. Paste the JSON array as the value of `LINKEDIN_COOKIES` in `.env`
-
-Without cookies, LinkedIn returns 0 results. Glassdoor returns preview text only.
+| `ADZUNA_APP_ID` | Yes | Adzuna API app ID |
+| `ADZUNA_APP_KEY` | Yes | Adzuna API app key |
+| `NOTIFY_EMAIL` | No | Gmail address for success/failure notifications |
+| `GMAIL_APP_PASSWORD` | No | Gmail app password for sending notifications |
 
 ## Scoring
 
-Each job receives a **final score = Claude semantic score (0–100) + rule-based points**.
+Each job receives a **final score = Claude semantic score (0–100) + rule-based points**, clamped to [0, 100]. Both components are shown on the dashboard so you can tell apart a high-Claude-fit job from one that scored well on keywords alone.
 
-Rule adjustments are applied automatically based on job title and description content (authoring tools, OCM requirements, enterprise software, salary, travel %, seniority, etc.). See `CLAUDE.md` for the full scoring table.
+Rule adjustments are applied automatically based on job title and description content (authoring tools, OCM requirements, enterprise software, primary title match, salary, travel %, seniority, etc.). See `CLAUDE.md` for the full scoring table.
 
 ## Tests
 
@@ -66,6 +61,7 @@ pytest tests/test_scorer.py   # scorer rules only, no API key needed
 
 ## Notes
 
-- Raw scraped data is saved to `output/raw_<site>_<timestamp>.json` before scoring, so you can re-run `python main.py rank` without re-scraping.
-- LinkedIn and Indeed have bot detection. Expect occasional failures — the scraper retries up to 3 times per query with exponential backoff.
-- Scraping LinkedIn/Glassdoor may violate their Terms of Service. Use at your own discretion.
+- Raw scraped data is saved to `output/raw_<site>_<date>.json` before scoring. Re-running `python main.py rank` reuses today's scrape without hitting the API again.
+- Claude scores are cached in `output/scores_cache.json` by job title + company. The cache auto-invalidates if the resume or scoring prompt changes.
+- Adzuna's free tier allows 1,000 API calls/month. With 15 title queries × 2 locations = 30 calls per run, a daily schedule stays well within limits.
+- Resume lives in `data/resume.txt`. After editing it locally, update the GitHub secret too: `gh secret set RESUME_TXT < data/resume.txt`
