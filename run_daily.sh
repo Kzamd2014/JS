@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Local runner invoked by the job-scraper.timer systemd unit (daily, 7am).
+# Writes output to output/scrape_YYYY-MM-DD.log and emails on failure.
+# Does NOT deploy to GitHub Pages — that is handled by the GitHub Actions workflow.
 set -uo pipefail
 umask 077
 

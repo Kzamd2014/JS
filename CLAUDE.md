@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project overview
 
-Job scraper that pulls listings from LinkedIn, Indeed, Glassdoor, Wellfound, and Hiring Cafe, then scores each job against Kelly's resume using a two-layer ranking system: rule-based point adjustments (defined below) followed by Claude API semantic scoring. Output is a static HTML dashboard.
+Job scraper that pulls listings from Adzuna (REST API) and Hiring Cafe (Playwright), then scores each job against Kelly's resume using a two-layer ranking system: rule-based point adjustments (defined below) followed by Claude API semantic scoring. Output is a static HTML dashboard.
 
 ## Commands
 
@@ -18,7 +18,7 @@ python main.py run
 
 # Scrape only
 python main.py scrape
-python main.py scrape --site linkedin   # single site
+python main.py scrape --site adzuna     # single site
 
 # Rank already-scraped jobs
 python main.py rank
@@ -30,6 +30,17 @@ pytest tests/test_ranker.py            # single file
 
 API keys go in `.env` (never commit). See `.env.example`.
 
+## Delivery
+
+Two runners execute the pipeline independently:
+
+| Runner | Schedule | Deploys to Pages | Emails |
+|---|---|---|---|
+| `run_daily.sh` via `job-scraper.timer` | Daily 7am (incl. weekends) | No | Failure only |
+| GitHub Actions (`daily-scrape.yml`) | Weekdays 7am CT | Yes | Success + failure |
+
+Local logs: `output/scrape_YYYY-MM-DD.log` (written by `run_daily.sh`, not CI).
+
 ## Architecture
 
 Two-layer scoring pipeline:
@@ -39,39 +50,37 @@ Two-layer scoring pipeline:
 
 ```
 scrapers/
-  base.py          # Abstract Playwright scraper (login handling, rate limiting)
-  linkedin.py
-  indeed.py
-  glassdoor.py
-  wellfound.py
-  hiringcafe.py
+  base.py          # BaseScraper (Playwright context, rate limiting, retry, dedupe)
+  adzuna.py        # REST API scraper — no browser, pure HTTP (free tier: 1,000 calls/month)
+  hiringcafe.py    # Playwright scraper — low bot protection, straightforward
 scorer.py          # Rule-based point adjustments
 ranker.py          # Claude API integration
-dashboard.py       # Renders output/dashboard.html
+dashboard.py       # Renders output/index.html
 main.py            # CLI entry point (run / scrape / rank subcommands)
 config.py          # Loads search prefs and .env
-output/            # Generated HTML (git-ignored)
+output/            # Generated HTML and raw JSON (git-ignored)
 ```
 
 Each scraper returns a list of dicts with at minimum: `title`, `company`, `location`, `url`, `description`, `remote` (bool), `salary` (str|None).
 
 ## Resume — Kelly Zamboni
 
-**Role:** Instructional Design & Organizational Change Management Consultant, 18+ years
+**Two copies exist — keep them in sync:**
 
-**Core skills:** ADDIE methodology, ILT/VILT, eLearning, Train-the-Trainer, enterprise system training, go-live support, OCM planning, stakeholder engagement, impact analysis, organizational readiness assessment
+| Copy | Used by |
+|---|---|
+| `data/resume.txt` | Local runs (`python main.py run`) |
+| GitHub secret `RESUME_TXT` | CI (daily workflow writes it to `data/resume.txt` at runtime) |
 
-**Tools:** Articulate 360, Adobe Creative Suite, Camtasia, Snagit, Saba Cloud LMS, Salesforce, Microsoft Teams
+**To update the resume:** edit `data/resume.txt`, then push it to the secret:
 
-**Certifications:** Change Management Practitioner, SAFe 6 Scrum Master, CSM, Certified Product Manager L1
+```bash
+gh secret set RESUME_TXT < data/resume.txt
+```
 
-**Key experience:**
-- Federal Reserve Bank of Kansas City (2020–present): Built learning paths (1,300+ views), overhauled mandatory training for 3,000 employees, led skills gap analysis for 80 staff, built COMPASS eLearning from scratch, ran Salesforce VILT for 60+ staff
-- Terracon Consultants (2016–2020): LMS dashboards for 5,000+ employees (cut manual reporting 40%), safety compliance eLearning, Articulate 360 production
-- Shook Hardy & Bacon (2008–2016): Billing system rollout training for 400+ users (90%+ completion, 25% fewer post-launch help desk tickets), role-specific ID for attorneys/paralegals/support staff, reduced new hire onboarding time 20%
-- GMAC Financial (2006–2008): Trained 200+ agents, cut ramp-to-productivity 30%, 95% post-training pass rate
+The Claude ranker reads `data/resume.txt` at runtime. Editing only the local file without updating the secret means CI silently uses the old resume. The prompt-hash cache (`output/scores_cache.json`) will auto-invalidate on the next run after either copy changes.
 
-**Education:** MS Human Resource Management (Lindenwood), BSBA Management & Organizational Behavior (UMSL)
+**Summary:** Instructional Design & OCM Consultant, 18+ years. Core background in ADDIE, ILT/VILT, eLearning, Train-the-Trainer, enterprise system rollouts, and go-live support. Key tools: Articulate 360, Adobe Creative Suite, Camtasia, Snagit, Salesforce, Saba Cloud LMS. Based in Kansas City, MO; open to remote.
 
 ## Job search preferences
 
@@ -92,6 +101,7 @@ LMS Administrator/Analyst, Learning Technology Specialist, IT Training Specialis
 | Enterprise software implementation (Salesforce, LMS, ERP) | +10 |
 | OCM or change management explicitly required | +10 |
 | Senior, lead, or consultant-level title | +8 |
+| Primary title match (Instructional Designer, Learning Consultant, OCM Consultant, etc.) | +5 |
 | Remote or hybrid offered | +5 |
 | Salary listed ≥ $80k | +5 |
 | Train-the-Trainer or go-live support mentioned | +5 |
@@ -109,10 +119,7 @@ LMS Administrator/Analyst, Learning Technology Specialist, IT Training Specialis
 
 ## Scraper constraints
 
-- **LinkedIn**: Blocks headless browsers aggressively. Requires a logged-in session (store cookies in `.env` or a session file). Expect frequent CAPTCHAs — build in retry logic and a fallback to skip rather than crash.
-- **Indeed**: Has bot detection; use realistic `user_agent` and randomized delays (2–5s between requests).
-- **Glassdoor**: Requires login for full job descriptions. Scrape the preview text if unauthenticated.
-- **Wellfound** (formerly AngelList): Generally accessible without login; startup-heavy, good for remote roles.
-- **Hiring Cafe**: Smaller, low bot protection, straightforward to scrape.
+- **Adzuna**: Free tier — 1,000 API calls/month. Requires `ADZUNA_APP_ID` and `ADZUNA_APP_KEY` in `.env`. Aggregates from many US job boards; descriptions are short snippets (not full text). No Playwright needed.
+- **Hiring Cafe**: Low bot protection, straightforward to scrape with Playwright. No login required.
 
-Rate-limit all scrapers: minimum 2s delay between page loads, randomized. Store raw results to `output/raw_<site>_<date>.json` before scoring so reruns don't re-scrape.
+Rate-limit all scrapers: minimum 2s delay between requests, randomized. Store raw results to `output/raw_<site>_<date>.json` before scoring so reruns don't re-scrape.

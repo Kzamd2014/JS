@@ -30,6 +30,18 @@ def test_ocm_signal():
     assert any("OCM" in s for s in result["rule_signals"])
 
 
+def test_primary_title_signal():
+    job = _job(title="Instructional Designer", description="eLearning development role.")
+    result = score(job)
+    assert any("+5 Primary title" in s for s in result["rule_signals"])
+
+
+def test_secondary_title_no_primary_bonus():
+    job = _job(title="Technical Trainer", description="eLearning development role.")
+    result = score(job)
+    assert not any("Primary title" in s for s in result["rule_signals"])
+
+
 def test_senior_title_signal():
     job = _job(title="Senior Instructional Designer", description="Instructional design role.")
     result = score(job)

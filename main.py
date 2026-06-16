@@ -35,12 +35,26 @@ async def _run_scrapers(site: str | None) -> list[dict]:
 
     async def _run_one(name: str, cls) -> list[dict]:
         print(f"\nScraping {name}...")
+        # Reuse today's raw file if it exists — avoids burning API quota on reruns
+        today = ts[:8]
+        existing = sorted(OUTPUT_DIR.glob(f"raw_{name}_{today}_*.json"))
+        if existing:
+            try:
+                jobs = json.loads(existing[-1].read_text(encoding="utf-8"))
+                print(f"  [{name}] Reusing today's cached scrape → {existing[-1].name} ({len(jobs)} jobs)")
+                if not jobs:
+                    print(f"  [{name}] WARNING: cached scrape is empty — yesterday's run may have failed")
+                return jobs
+            except (json.JSONDecodeError, UnicodeDecodeError) as e:
+                print(f"  [{name}] Cache read failed ({e}) — re-scraping")
         try:
             scraper = cls()
             jobs = await scraper.scrape(ALL_TITLES, LOCATIONS)
         except Exception as e:
             print(f"  [{name}] Scraper failed: {type(e).__name__}: {e}\n{traceback.format_exc()}")
             jobs = []
+        if not jobs:
+            print(f"  [{name}] WARNING: scraper returned 0 jobs — check for site changes or bot detection")
         raw_path = OUTPUT_DIR / f"raw_{name}_{ts}.json"
         _atomic_write(raw_path, json.dumps(jobs, indent=2))
         print(f"  [{name}] Saved {len(jobs)} jobs → {raw_path}")
@@ -58,17 +72,17 @@ def _load_latest_raw() -> list[dict]:
 
     # Group by site name, pick the latest file per site
     site_pattern = re.compile(r"^raw_(.+)_(\d{8}_\d{6})$")
-    latest_per_site: dict[str, Path] = {}
+    latest_per_site: dict[str, tuple[str, Path]] = {}
     for f in raw_files:
         m = site_pattern.match(f.stem)
         if not m:
             continue
         site, ts = m.group(1), m.group(2)
-        if site not in latest_per_site or ts > site_pattern.match(latest_per_site[site].stem).group(2):
-            latest_per_site[site] = f
+        if site not in latest_per_site or ts > latest_per_site[site][0]:
+            latest_per_site[site] = (ts, f)
 
     all_jobs: list[dict] = []
-    for site, f in sorted(latest_per_site.items()):
+    for site, (_, f) in sorted(latest_per_site.items()):
         try:
             jobs = json.loads(f.read_text(encoding="utf-8"))
             print(f"  Loaded {len(jobs)} jobs from {f.name}")

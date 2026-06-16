@@ -101,7 +101,7 @@ class BaseScraper(ABC):
                 wait = 2 ** (attempt + 1) + random.uniform(0, 1)
                 print(f"  [{self.site_name}] Retry {attempt + 1}/{max_attempts - 1} in {wait:.1f}s: {e}")
                 await asyncio.sleep(wait)
-        return []
+        raise RuntimeError("unreachable")
 
     async def _delay(self):
         await asyncio.sleep(random.uniform(2, 5))

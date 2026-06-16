@@ -1,4 +1,5 @@
 import re
+from config import PRIMARY_TITLES
 
 # Keywords that indicate a dollar amount is NOT a salary figure
 _NON_SALARY = re.compile(
@@ -82,6 +83,7 @@ _ENTRY_PATTERNS = [re.compile(p) for p in [
     r'new\s+grad(?:uate)?', r'level\s*[i1]\b', r'associate\s+level',
     r'\b[ivx]{1,4}\s*$',
 ]]
+_PRIMARY_TITLE_PATTERNS = [re.compile(re.escape(t), re.IGNORECASE) for t in PRIMARY_TITLES]
 _ONSITE_PATTERNS = [re.compile(p) for p in [
     r'on[\s-]?site\s+only', r'onsite\s+only', r'fully\s+in[\s-]office',
     r'100\s*%\s*on[\s-]?site', r'no\s+remote\s+work', r'must\s+be\s+on[\s-]?site',
@@ -119,6 +121,10 @@ def score(job: dict) -> dict:
     if any(p.search(title) for p in _SENIOR_PATTERNS):
         points += 8
         signals.append("+8 Senior/lead/consultant title")
+
+    if any(p.search(title) for p in _PRIMARY_TITLE_PATTERNS):
+        points += 5
+        signals.append("+5 Primary title (ID/OCM/eLearning focus)")
 
     if job.get("remote", False):
         points += 5

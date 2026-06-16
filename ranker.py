@@ -1,3 +1,4 @@
+import hashlib
 import json
 import os
 import re
@@ -12,6 +13,12 @@ from config import RESUME_TEXT, ANTHROPIC_API_KEY, OUTPUT_DIR
 _client: anthropic.Anthropic | None = None
 _SYSTEM: str | None = None
 _CACHE_PATH = OUTPUT_DIR / "scores_cache.json"
+
+
+def _cache_key(job: dict) -> str:
+    title = (job.get("title") or "").lower().strip()
+    company = (job.get("company") or "").lower().strip()
+    return f"{title}||{company}"
 
 
 def _get_system() -> str:
@@ -43,18 +50,26 @@ def _client_instance() -> anthropic.Anthropic:
     return _client
 
 
+def _prompt_hash() -> str:
+    return hashlib.sha256(_get_system().encode()).hexdigest()[:8]
+
+
 def _load_cache() -> dict:
     if _CACHE_PATH.exists():
         try:
-            return json.loads(_CACHE_PATH.read_text(encoding="utf-8"))
+            data = json.loads(_CACHE_PATH.read_text(encoding="utf-8"))
+            if data.get("prompt_hash") == _prompt_hash():
+                return data.get("entries", {})
+            print("  [cache] System prompt changed — starting fresh (old entries discarded)")
         except (json.JSONDecodeError, OSError):
-            return {}
+            pass
     return {}
 
 
 def _save_cache(cache: dict) -> None:
+    data = {"prompt_hash": _prompt_hash(), "entries": cache}
     tmp = _CACHE_PATH.with_suffix(".tmp")
-    tmp.write_text(json.dumps(cache, indent=2), encoding="utf-8")
+    tmp.write_text(json.dumps(data, indent=2), encoding="utf-8")
     os.replace(tmp, _CACHE_PATH)
 
 
@@ -142,9 +157,9 @@ def rank_jobs(jobs: list[dict]) -> list[dict]:
     pre_ranked: dict[int, dict] = {}
     to_rank: list[tuple[int, dict]] = []
     for i, job in enumerate(jobs):
-        url = job.get("url", "")
-        if url and url in cache:
-            cached = cache[url]
+        key = _cache_key(job)
+        if key in cache:
+            cached = cache[key]
             rule_score = job.get("rule_score", 0)
             claude_score = max(0, min(100, int(cached.get("claude_score", 50))))
             rationale = str(cached.get("claude_rationale", ""))[:300]
@@ -168,10 +183,9 @@ def rank_jobs(jobs: list[dict]) -> list[dict]:
     def _rank_one(idx_job: tuple[int, dict]) -> tuple[int, dict, tuple | None]:
         i, job = idx_job
         result = rank_job(job)
-        url = job.get("url", "")
         cache_entry = None
-        if url and not result.get("claude_api_failed"):
-            cache_entry = (url, {
+        if not result.get("claude_api_failed"):
+            cache_entry = (_cache_key(job), {
                 "claude_score": result["claude_score"],
                 "claude_rationale": result["claude_rationale"],
             })

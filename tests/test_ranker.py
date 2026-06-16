@@ -61,8 +61,10 @@ def test_rank_job_api_error_returns_fallback():
 
 def test_rank_jobs_sorted_descending():
     responses = [_mock_response(30), _mock_response(90)]
-    jobs = [_job(rule_score=0), _job(rule_score=0)]
-    with patch("ranker._client_instance") as mock_client:
+    jobs = [_job(rule_score=0, title="Job A"), _job(rule_score=0, title="Job B")]
+    with patch("ranker._load_cache", return_value={}), \
+         patch("ranker._save_cache"), \
+         patch("ranker._client_instance") as mock_client:
         mock_client.return_value.messages.create.side_effect = lambda **_: responses.pop(0)
         ranked = rank_jobs(jobs)
     assert ranked[0]["final_score"] >= ranked[1]["final_score"]
@@ -71,8 +73,10 @@ def test_rank_jobs_sorted_descending():
 def test_rank_jobs_one_api_error_does_not_abort():
     """A single API failure should not prevent other jobs from being ranked."""
     responses = [Exception("timeout"), _mock_response(80)]
-    jobs = [_job(rule_score=0), _job(rule_score=0)]
-    with patch("ranker._client_instance") as mock_client:
+    jobs = [_job(rule_score=0, title="Job A"), _job(rule_score=0, title="Job B")]
+    with patch("ranker._load_cache", return_value={}), \
+         patch("ranker._save_cache"), \
+         patch("ranker._client_instance") as mock_client:
         mock_client.return_value.messages.create.side_effect = responses
         ranked = rank_jobs(jobs)
     assert len(ranked) == 2

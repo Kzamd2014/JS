@@ -106,7 +106,12 @@ jobs:
           dashboard_url = 'https://kzamd2014.github.io/JS/'
           lines = [f"Top {len(top)} matches for {datetime.date.today().isoformat()} ({len(jobs)} total scraped):\n"]
           for i, j in enumerate(top, 1):
-              lines.append(f"{i}. [{j.get('final_score','?')}] {j.get('title')} @ {j.get('company')} — {j.get('location')}")
+              final = j.get('final_score', '?')
+              ai    = j.get('claude_score', '?')
+              rules = j.get('rule_score', 0)
+              r_str = f"+{rules}" if isinstance(rules, int) and rules >= 0 else str(rules)
+              lines.append(f"{i}. [{final}] {j.get('title')} @ {j.get('company')} — {j.get('location')}")
+              lines.append(f"   AI {ai}  Rules {r_str}")
               if j.get('claude_rationale'):
                   lines.append(f"   {j['claude_rationale']}")
               if j.get('url'):

@@ -51,7 +51,7 @@ th[data-sort]::after { content: ' ↕'; opacity: 0.4; }
 td { padding: 0.65rem 0.9rem; border-top: 1px solid #f1f5f9; vertical-align: top; }
 tr:hover td { background: #f8fafc; }
 
-.score-cell { width: 64px; }
+.score-cell { width: 72px; }
 .score {
   display: inline-flex; align-items: center; justify-content: center;
   width: 42px; height: 42px; border-radius: 50%;
@@ -60,6 +60,7 @@ tr:hover td { background: #f8fafc; }
 .score-high { background: #dcfce7; color: #15803d; }
 .score-mid  { background: #fef9c3; color: #a16207; }
 .score-low  { background: #fee2e2; color: #b91c1c; }
+.score-breakdown { font-size: 0.65rem; color: #94a3b8; text-align: center; margin-top: 0.25rem; white-space: nowrap; }
 
 .job-title { font-weight: 600; }
 .job-title a { color: #2563eb; text-decoration: none; }
@@ -127,6 +128,7 @@ tr:hover td { background: #f8fafc; }
           data-company="{{ job.company|lower }}">
         <td class="score-cell">
           <span class="score score-{{ job.score_class }}">{{ job.final_score }}</span>
+          <div class="score-breakdown">AI:{{ job.claude_score }} / R:{% if job.rule_score > 0 %}+{% endif %}{{ job.rule_score }}</div>
         </td>
         <td>
           <div class="job-title">

@@ -39,10 +39,15 @@ ALL_TITLES = PRIMARY_TITLES + SECONDARY_TITLES
 
 LOCATIONS = ["Kansas City, MO", "remote"]
 
-_resume_path = Path(__file__).parent / "data" / "resume.txt"
-if not _resume_path.exists():
-    raise FileNotFoundError(
-        f"Resume not found at {_resume_path}. "
-        "Copy data/resume.txt.example to data/resume.txt and fill it in."
-    )
-RESUME_TEXT = _resume_path.read_text(encoding="utf-8")
+def __getattr__(name: str) -> str:
+    if name == "RESUME_TEXT":
+        path = Path(__file__).parent / "data" / "resume.txt"
+        if not path.exists():
+            raise FileNotFoundError(
+                f"Resume not found at {path}. "
+                "Copy data/resume.txt.example to data/resume.txt and fill it in."
+            )
+        text = path.read_text(encoding="utf-8")
+        globals()["RESUME_TEXT"] = text  # cache so __getattr__ isn't called again
+        return text
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
