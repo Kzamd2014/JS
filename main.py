@@ -11,6 +11,7 @@ from pathlib import Path
 from config import ALL_TITLES, PRIMARY_TITLES, OUTPUT_DIR, LOCATIONS
 from scrapers.adzuna import AdzunaScraper
 from scrapers.hiringcafe import HiringCafeScraper
+from scrapers.linkedin_rss import LinkedInRssScraper
 from scrapers.base import dedupe_jobs
 from scorer import score as rule_score
 from ranker import rank_jobs
@@ -24,8 +25,9 @@ def _atomic_write(path: Path, content: str) -> None:
 
 
 SCRAPERS = {
-    "adzuna": AdzunaScraper,
-    "hiringcafe": HiringCafeScraper,
+    # "adzuna": AdzunaScraper,
+    # "hiringcafe": HiringCafeScraper,
+    "linkedin_rss": LinkedInRssScraper,
 }
 
 
@@ -81,6 +83,8 @@ def _load_latest_raw() -> list[dict]:
         if not m:
             continue
         site, ts = m.group(1), m.group(2)
+        if site not in SCRAPERS:
+            continue
         if site not in latest_per_site or ts > latest_per_site[site][0]:
             latest_per_site[site] = (ts, f)
 

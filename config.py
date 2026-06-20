@@ -9,6 +9,7 @@ ADZUNA_APP_ID = os.getenv("ADZUNA_APP_ID", "")
 ADZUNA_APP_KEY = os.getenv("ADZUNA_APP_KEY", "")
 LINKEDIN_COOKIES = os.getenv("LINKEDIN_COOKIES", "")
 GLASSDOOR_COOKIES = os.getenv("GLASSDOOR_COOKIES", "")
+LINKEDIN_RSS_FEEDS = [u.strip() for u in os.getenv("LINKEDIN_RSS_FEEDS", "").split(",") if u.strip()]
 
 OUTPUT_DIR = Path(__file__).parent / "output"
 OUTPUT_DIR.mkdir(exist_ok=True)

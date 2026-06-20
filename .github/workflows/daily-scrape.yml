@@ -55,6 +55,7 @@ jobs:
           printf 'ADZUNA_APP_KEY=%s\n'    "$ADZUNA_APP_KEY"     >> .env
           printf 'NOTIFY_EMAIL=%s\n'      "$NOTIFY_EMAIL"       >> .env
           printf 'GMAIL_APP_PASSWORD=%s\n' "$GMAIL_APP_PASSWORD" >> .env
+          printf 'LINKEDIN_RSS_FEEDS=%s\n' "$LINKEDIN_RSS_FEEDS" >> .env
           mkdir -p data
           printf '%s' "$RESUME_TXT" > data/resume.txt
         env:
@@ -63,6 +64,7 @@ jobs:
           ADZUNA_APP_KEY:      ${{ secrets.ADZUNA_API }}
           NOTIFY_EMAIL:        ${{ secrets.NOTIFY_EMAIL }}
           GMAIL_APP_PASSWORD:  ${{ secrets.GMAIL_APP_PASSWORD }}
+          LINKEDIN_RSS_FEEDS:  ${{ secrets.LINKEDIN_RSS_FEEDS }}
           RESUME_TXT:          ${{ secrets.RESUME_TXT }}
 
       - name: Run pipeline
