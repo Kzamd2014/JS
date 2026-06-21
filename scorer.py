@@ -160,7 +160,7 @@ def score(job: dict) -> dict:
         if m:
             travel_pct = int(m.group(1))
             break
-    if travel_pct and travel_pct > 25:
+    if travel_pct is not None and travel_pct > 25:
         points -= 20
         signals.append(f"-20 Travel >{travel_pct}%")
 

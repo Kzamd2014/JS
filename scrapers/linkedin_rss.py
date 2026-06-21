@@ -3,15 +3,17 @@ LinkedIn job scraper via rss.app RSS feeds.
 No Playwright, no auth — pure HTTP. Feed URLs are set in LINKEDIN_RSS_FEEDS
 in .env (comma-separated). Add more feeds to broaden coverage.
 """
+from __future__ import annotations
+
+import asyncio
 import html.parser
 import re
-import traceback
 import urllib.request
-import xml.etree.ElementTree as ET
+
+import defusedxml.ElementTree as ET
 
 import config
-from scrapers.base import BaseScraper, dedupe_jobs, _infer_remote
-from playwright.async_api import BrowserContext
+from scrapers.base import dedupe_jobs, _infer_remote
 
 
 class _TextExtractor(html.parser.HTMLParser):
@@ -71,30 +73,46 @@ _FETCH_HEADERS = {
 }
 
 
-class LinkedInRssScraper(BaseScraper):
+def _make_job(**kwargs) -> dict:
+    return {
+        "site": "linkedin_rss",
+        "title": "",
+        "company": "",
+        "location": "",
+        "url": "",
+        "description": "",
+        "remote": False,
+        "salary": None,
+        **kwargs,
+    }
+
+
+class LinkedInRssScraper:
     site_name = "linkedin_rss"
 
     async def scrape(self, titles: list[str], locations: list[str]) -> list[dict]:
-        feed_urls = getattr(config, "LINKEDIN_RSS_FEEDS", [])
+        feed_urls = config.LINKEDIN_RSS_FEEDS
         if not feed_urls:
             print("  [linkedin_rss] No LINKEDIN_RSS_FEEDS configured — skipping")
             return []
 
+        tasks = [asyncio.to_thread(self._fetch_feed, url) for url in feed_urls]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
         all_jobs: list[dict] = []
-        for url in feed_urls:
-            try:
-                jobs = self._fetch_feed(url)
-                print(f"  [linkedin_rss] {url} → {len(jobs)} jobs")
-                all_jobs.extend(jobs)
-            except Exception as e:
-                print(
-                    f"  [linkedin_rss] Failed to fetch {url}: "
-                    f"{type(e).__name__}: {e}\n{traceback.format_exc()}"
-                )
+        for url, result in zip(feed_urls, results):
+            if isinstance(result, Exception):
+                print(f"  [linkedin_rss] Failed to fetch {url}: {type(result).__name__}: {result}")
+            else:
+                print(f"  [linkedin_rss] {url} → {len(result)} jobs")
+                all_jobs.extend(result)
 
         return dedupe_jobs(all_jobs)
 
     def _fetch_feed(self, url: str) -> list[dict]:
+        if not url.startswith(("https://", "http://")):
+            raise ValueError(f"Refusing non-HTTP feed URL: {url!r}")
+
         req = urllib.request.Request(url, headers=_FETCH_HEADERS)
         with urllib.request.urlopen(req, timeout=15) as resp:
             raw = resp.read()
@@ -116,19 +134,16 @@ class LinkedInRssScraper(BaseScraper):
 
             description = _strip_html(raw_desc)
             salary = _extract_salary(description)
-            remote = _infer_remote(location, False) or _infer_remote(raw_title, False)
+            remote = _infer_remote(f"{location} {raw_title}", False)
 
-            jobs.append(self._job(
+            jobs.append(_make_job(
                 title=title,
                 company=company,
                 location=location,
                 url=link,
-                description=description[:5000],
+                description=description[:config.DESCRIPTION_MAX_CHARS],
                 remote=remote,
                 salary=salary,
             ))
 
         return jobs
-
-    async def _search(self, context: BrowserContext, title: str, location: str) -> list[dict]:
-        return []

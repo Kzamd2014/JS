@@ -15,6 +15,8 @@ OUTPUT_DIR = Path(__file__).parent / "output"
 OUTPUT_DIR.mkdir(exist_ok=True)
 OUTPUT_DIR.chmod(0o700)
 
+DESCRIPTION_MAX_CHARS = 4000
+
 PRIMARY_TITLES = [
     "Instructional Designer",
     "Senior Instructional Designer",

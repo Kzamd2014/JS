@@ -8,9 +8,7 @@ import traceback
 from datetime import datetime
 from pathlib import Path
 
-from config import ALL_TITLES, PRIMARY_TITLES, OUTPUT_DIR, LOCATIONS
-from scrapers.adzuna import AdzunaScraper
-from scrapers.hiringcafe import HiringCafeScraper
+from config import ALL_TITLES, OUTPUT_DIR, LOCATIONS
 from scrapers.linkedin_rss import LinkedInRssScraper
 from scrapers.base import dedupe_jobs
 from scorer import score as rule_score
@@ -51,10 +49,7 @@ async def _run_scrapers(site: str | None) -> list[dict]:
                 print(f"  [{name}] Cache read failed ({e}) — re-scraping")
         try:
             scraper = cls()
-            # HiringCafe is slow (~40s/query) — primary titles + remote only (Adzuna covers KC)
-            titles = PRIMARY_TITLES if name == "hiringcafe" else ALL_TITLES
-            locations = ["remote"] if name == "hiringcafe" else LOCATIONS
-            jobs = await scraper.scrape(titles, locations)
+            jobs = await scraper.scrape(ALL_TITLES, LOCATIONS)
         except Exception as e:
             print(f"  [{name}] Scraper failed: {type(e).__name__}: {e}\n{traceback.format_exc()}")
             jobs = []
@@ -83,8 +78,6 @@ def _load_latest_raw() -> list[dict]:
         if not m:
             continue
         site, ts = m.group(1), m.group(2)
-        if site not in SCRAPERS:
-            continue
         if site not in latest_per_site or ts > latest_per_site[site][0]:
             latest_per_site[site] = (ts, f)
 
@@ -104,9 +97,7 @@ def cmd_scrape(args):
     print(f"\nTotal: {len(jobs)} unique jobs scraped.")
 
 
-def cmd_rank(args):
-    print("Loading scraped jobs...")
-    jobs = _load_latest_raw()
+def _rank_and_publish(jobs: list[dict]) -> None:
     print(f"Loaded {len(jobs)} jobs. Applying rule scorer...")
     jobs = [rule_score(j) for j in jobs]
     print(f"Calling Claude API for semantic scoring ({len(jobs)} jobs)...")
@@ -118,12 +109,21 @@ def cmd_rank(args):
     generate(ranked, OUTPUT_DIR / "index.html")
 
 
+def cmd_rank(args):
+    print("Loading scraped jobs...")
+    jobs = _load_latest_raw()
+    if not jobs:
+        print("\nERROR: No jobs loaded — run 'python main.py scrape' first.")
+        sys.exit(1)
+    _rank_and_publish(jobs)
+
+
 def cmd_run(args):
     jobs = asyncio.run(_run_scrapers(None))
     if not jobs:
         print("\nERROR: All scrapers returned 0 jobs — aborting pipeline.")
         sys.exit(1)
-    cmd_rank(args)
+    _rank_and_publish(jobs)
     print(f"\nDone. Open output/index.html in your browser.")
 
 
