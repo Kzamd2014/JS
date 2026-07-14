@@ -36,8 +36,12 @@ Two runners execute the pipeline independently:
 
 | Runner | Schedule | Deploys to Pages | Emails |
 |---|---|---|---|
-| `run_daily.sh` via `job-scraper.timer` | Daily 7am (incl. weekends) | No | Failure only |
-| GitHub Actions (`daily-scrape.yml`) | Weekdays 7am CT | Yes | Success + failure |
+| `run_daily.sh` via system-level `job-scraper.timer` | Daily 7am (incl. weekends) | No | Failure only |
+| GitHub Actions (`daily-scrape.yml`) | Weekdays 7am CT | Yes | No |
+
+The local timer is the system-level unit (`/etc/systemd/system/job-scraper.timer`).
+Concurrent runs are serialized by a flock on `output/.job-scraper.lock` — the loser
+logs "skipping" and exits 0.
 
 Local logs: `output/scrape_YYYY-MM-DD.log` (written by `run_daily.sh`, not CI).
 

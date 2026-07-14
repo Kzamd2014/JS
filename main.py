@@ -4,6 +4,7 @@ import json
 import os
 import re
 import sys
+import tempfile
 import traceback
 from datetime import datetime
 from pathlib import Path
@@ -17,9 +18,19 @@ from dashboard import generate
 
 
 def _atomic_write(path: Path, content: str) -> None:
-    tmp = path.with_suffix(".tmp")
-    tmp.write_text(content, encoding="utf-8")
-    os.replace(tmp, path)
+    # Unique temp name per writer — a deterministic name lets two concurrent
+    # runs targeting the same path race each other's os.replace.
+    fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(content)
+        os.replace(tmp, path)
+    except BaseException:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
 
 
 SCRAPERS = {

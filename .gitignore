@@ -7,6 +7,8 @@ output/*.html
 output/raw_*.json
 output/ranked_*.json
 output/scores_cache.json
+output/*.log
+output/.job-scraper.lock
 data/resume.txt
 .DS_Store
 .vscode/
