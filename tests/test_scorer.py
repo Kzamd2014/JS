@@ -19,7 +19,7 @@ def test_authoring_tools_signal():
 
 
 def test_enterprise_signal():
-    job = _job(title="Learning Consultant", description="Salesforce LMS implementation and ERP rollout support.")
+    job = _job(title="Learning Consultant", description="LMS implementation and ERP rollout support.")
     result = score(job)
     assert any("+10 Enterprise" in s for s in result["rule_signals"])
 

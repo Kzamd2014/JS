@@ -48,7 +48,7 @@ _AUTHORING_PATTERNS = [re.compile(p) for p in [
     r'\bcamtasia\b', r'\bsnagit\b',
 ]]
 _ENTERPRISE_PATTERNS = [re.compile(p) for p in [
-    r'\bsalesforce\b', r'\blms\b', r'\berp\b',
+    r'\blms\b', r'\berp\b',
     r'enterprise\s+(?:system|software|application|platform)',
 ]]
 _OCM_PATTERNS = [re.compile(p) for p in [
@@ -112,7 +112,7 @@ def score(job: dict) -> dict:
 
     if any(p.search(text) for p in _ENTERPRISE_PATTERNS):
         points += 10
-        signals.append("+10 Enterprise software (Salesforce/LMS/ERP)")
+        signals.append("+10 Enterprise software (LMS/ERP)")
 
     if any(p.search(text) for p in _OCM_PATTERNS):
         points += 10

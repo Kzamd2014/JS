@@ -85,7 +85,7 @@ gh secret set RESUME_TXT < data/resume.txt
 
 The Claude ranker reads `data/resume.txt` at runtime. Editing only the local file without updating the secret means CI silently uses the old resume. The prompt-hash cache (`output/scores_cache.json`) will auto-invalidate on the next run after either copy changes.
 
-**Summary:** Instructional Design & OCM Consultant, 18+ years. Core background in ADDIE, ILT/VILT, eLearning, Train-the-Trainer, enterprise system rollouts, and go-live support. Key tools: Articulate 360, Adobe Creative Suite, Camtasia, Snagit, Salesforce, Saba Cloud LMS. Based in Kansas City, MO; open to remote.
+**Summary:** Instructional Design & OCM Consultant, 18+ years. Core background in ADDIE, ILT/VILT, eLearning, Train-the-Trainer, enterprise system rollouts, and go-live support. Key tools: Articulate 360, Adobe Creative Suite, Camtasia, Snagit, Saba Cloud LMS. Based in Kansas City, MO; open to remote.
 
 ## Job search preferences
 
@@ -103,7 +103,7 @@ LMS Administrator/Analyst, Learning Technology Specialist, IT Training Specialis
 | Signal | Points |
 |---|---|
 | Mentions Articulate 360, Adobe Creative Suite, Camtasia, or Snagit | +10 |
-| Enterprise software implementation (Salesforce, LMS, ERP) | +10 |
+| Enterprise software implementation (LMS, ERP) | +10 |
 | OCM or change management explicitly required | +10 |
 | Senior, lead, or consultant-level title | +8 |
 | Primary title match (Instructional Designer, Learning Consultant, OCM Consultant, etc.) | +5 |
