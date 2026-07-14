@@ -110,8 +110,8 @@ class LinkedInRssScraper:
         return dedupe_jobs(all_jobs)
 
     def _fetch_feed(self, url: str) -> list[dict]:
-        if not url.startswith(("https://", "http://")):
-            raise ValueError(f"Refusing non-HTTP feed URL: {url!r}")
+        if not url.startswith("https://"):
+            raise ValueError(f"Refusing non-HTTPS feed URL: {url!r}")
 
         req = urllib.request.Request(url, headers=_FETCH_HEADERS)
         with urllib.request.urlopen(req, timeout=15) as resp:

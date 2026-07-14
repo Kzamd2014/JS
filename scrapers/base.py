@@ -1,9 +1,16 @@
+from __future__ import annotations
+
 import asyncio
 import json
 import random
 import traceback
 from abc import ABC, abstractmethod
-from playwright.async_api import async_playwright, Browser, BrowserContext
+from typing import TYPE_CHECKING
+
+# Playwright is only required for the browser-based scrapers, which are
+# currently disabled — import lazily so main.py can use dedupe_jobs without it.
+if TYPE_CHECKING:
+    from playwright.async_api import Browser, BrowserContext
 
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -44,6 +51,8 @@ class BaseScraper(ABC):
     site_name: str = ""
 
     async def scrape(self, titles: list[str], locations: list[str]) -> list[dict]:
+        from playwright.async_api import async_playwright
+
         jobs: list[dict] = []
         async with async_playwright() as p:
             browser = await p.chromium.launch(

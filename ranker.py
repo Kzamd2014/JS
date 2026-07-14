@@ -93,10 +93,12 @@ def _create_with_retry(client: anthropic.Anthropic, **kwargs) -> anthropic.types
 def rank_job(job: dict) -> dict:
     description = (job.get("description") or job.get("title") or "")[:DESCRIPTION_MAX_CHARS]
     description = description.replace("</job_description>", "[/job_description]")
-    title = str(job.get("title") or "Unknown")[:200]
-    company = str(job.get("company") or "Unknown")[:200]
-    location = str(job.get("location") or "")[:100]
-    salary = str(job.get("salary") or "Not listed")[:100]
+    # Collapse whitespace/newlines — these fields are scraped (untrusted) and sit
+    # outside the <job_description> fence, so don't let them smuggle in extra lines
+    title = re.sub(r"\s+", " ", str(job.get("title") or "Unknown"))[:200]
+    company = re.sub(r"\s+", " ", str(job.get("company") or "Unknown"))[:200]
+    location = re.sub(r"\s+", " ", str(job.get("location") or ""))[:100]
+    salary = re.sub(r"\s+", " ", str(job.get("salary") or "Not listed"))[:100]
     api_failed = False
 
     try:

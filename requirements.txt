@@ -1,7 +1,8 @@
-anthropic>=0.40.0
-defusedxml>=0.7.1
-playwright>=1.45.0
-python-dotenv>=1.0.0
-jinja2>=3.1.0
-pytest>=8.0.0
-pytest-asyncio>=0.23.0
+anthropic==0.105.2
+defusedxml==0.7.1
+python-dotenv==1.2.2
+jinja2==3.1.6
+pytest==9.0.3
+pytest-asyncio==1.4.0
+# playwright is only needed to re-enable the browser scrapers (hiringcafe/adzuna/etc.):
+#   pip install "playwright>=1.45" && playwright install chromium

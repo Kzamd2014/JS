@@ -11,7 +11,8 @@ Job scraper that pulls listings from Adzuna (REST API) and Hiring Cafe (Playwrig
 ```bash
 # Install
 pip install -r requirements.txt
-playwright install chromium
+# Only if re-enabling the browser scrapers (hiringcafe/adzuna/etc.):
+pip install "playwright>=1.45" && playwright install chromium
 
 # Run full pipeline (scrape → rank → generate dashboard)
 python main.py run

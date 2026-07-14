@@ -16,9 +16,9 @@ jobs:
       PYTHONUNBUFFERED: "1"
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: '3.12'
           cache: pip
@@ -27,7 +27,7 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Restore scores cache
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: output/scores_cache.json
           key: scores-cache-${{ github.run_id }}
@@ -47,18 +47,24 @@ jobs:
       - name: Run pipeline
         run: python main.py run
 
+      # Publish ONLY the dashboard — output/ also holds raw/ranked JSON and the
+      # scores cache, which contain resume-derived text and must never go public.
+      - name: Stage dashboard for publish
+        run: mkdir -p site && cp output/index.html site/
+
       - name: Deploy dashboard to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
+        uses: peaceiris/actions-gh-pages@329bcc8f12caed2cefe5a5b80781499a6f3b361b # v4
         if: success()
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_branch: gh-pages
-          publish_dir: output
+          publish_dir: site
           destination_dir: .
           keep_files: false
+          force_orphan: true  # single-commit branch: no stale files linger in history
 
       - name: Upload dashboard as artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: dashboard-${{ github.run_number }}
