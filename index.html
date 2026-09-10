@@ -1,0 +1,1145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'nonce-bdbf9ac3cc107d21bacaefbae6daa75c'; style-src 'unsafe-inline'; connect-src 'none';">
+<title>Job Matches — Kelly Zamboni</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f1f5f9; color: #1e293b; font-size: 14px; }
+
+header { background: #0f172a; color: #f8fafc; padding: 1.25rem 2rem; }
+header h1 { font-size: 1.25rem; font-weight: 600; letter-spacing: -0.01em; }
+header .meta { color: #94a3b8; font-size: 0.8rem; margin-top: 0.2rem; }
+
+.controls { display: flex; gap: 0.75rem; margin-top: 1rem; flex-wrap: wrap; align-items: center; }
+.controls input[type="text"],
+.controls select,
+.controls input[type="number"] {
+  padding: 0.35rem 0.65rem;
+  border: 1px solid #334155;
+  border-radius: 5px;
+  background: #1e293b;
+  color: #f1f5f9;
+  font-size: 0.8rem;
+  outline: none;
+}
+.controls input[type="text"] { width: 220px; }
+.controls input[type="number"] { width: 70px; }
+.controls label { color: #94a3b8; font-size: 0.8rem; display: flex; align-items: center; gap: 0.4rem; }
+
+main { padding: 1.25rem 2rem; }
+.table-wrap { overflow-x: auto; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+
+table { width: 100%; border-collapse: collapse; background: #fff; min-width: 900px; }
+thead { background: #f8fafc; border-bottom: 2px solid #e2e8f0; }
+th {
+  padding: 0.6rem 0.9rem;
+  text-align: left;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #64748b;
+  white-space: nowrap;
+}
+th[data-sort] { cursor: pointer; }
+th[data-sort]:hover { color: #0f172a; }
+th[data-sort]::after { content: ' ↕'; opacity: 0.4; }
+
+td { padding: 0.65rem 0.9rem; border-top: 1px solid #f1f5f9; vertical-align: top; }
+tr:hover td { background: #f8fafc; }
+
+.score-cell { width: 72px; }
+.score {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 42px; height: 42px; border-radius: 50%;
+  font-weight: 700; font-size: 0.85rem; line-height: 1;
+}
+.score-high { background: #dcfce7; color: #15803d; }
+.score-mid  { background: #fef9c3; color: #a16207; }
+.score-low  { background: #fee2e2; color: #b91c1c; }
+.score-breakdown { font-size: 0.65rem; color: #94a3b8; text-align: center; margin-top: 0.25rem; white-space: nowrap; }
+
+.job-title { font-weight: 600; }
+.job-title a { color: #2563eb; text-decoration: none; }
+.job-title a:hover { text-decoration: underline; }
+.company-name { color: #64748b; font-size: 0.8rem; margin-top: 0.15rem; }
+
+.badge {
+  display: inline-block; padding: 0.15rem 0.45rem;
+  border-radius: 4px; font-size: 0.72rem; font-weight: 500;
+  margin: 0.1rem 0.1rem 0.1rem 0;
+  white-space: nowrap;
+}
+.badge-default { background: #e2e8f0; color: #475569; }
+.badge-green   { background: #dcfce7; color: #15803d; }
+.badge-red     { background: #fee2e2; color: #b91c1c; }
+.badge-blue    { background: #dbeafe; color: #1d4ed8; }
+
+.rationale { font-size: 0.75rem; color: #64748b; margin-top: 0.25rem; max-width: 260px; line-height: 1.4; }
+.claude-score { font-weight: 600; font-size: 0.9rem; }
+
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Job Matches — Kelly Zamboni</h1>
+  <div class="meta">25 jobs &middot; Generated 2026-09-10 16:51</div>
+  <div class="controls">
+    <input type="text" id="filter-text" placeholder="Filter title or company&hellip;">
+    <select id="filter-site">
+      <option value="">All sites</option>
+      <option value="linkedin_rss">Linkedin_rss</option>
+    </select>
+    <select id="filter-remote">
+      <option value="">Any location</option>
+      <option value="true">Remote / Hybrid</option>
+      <option value="false">Onsite</option>
+    </select>
+    <label>Min score: <input type="number" id="filter-score" value="0" min="-100" max="200"></label>
+  </div>
+</header>
+<main>
+  <div class="table-wrap">
+    <table id="jobs-table">
+      <thead>
+        <tr>
+          <th class="score-cell" data-sort="score">Score</th>
+          <th>Title / Company</th>
+          <th>Location</th>
+          <th data-sort="salary">Salary</th>
+          <th>Site</th>
+          <th>Signals</th>
+          <th data-sort="fit">Claude Fit</th>
+        </tr>
+      </thead>
+      <tbody id="jobs-body">
+      
+      <tr class="job-row"
+          data-score="93"
+          data-fit="78"
+          data-salary="110430"
+          data-site="linkedin_rss"
+          data-remote="false"
+          data-title="mgr org development - rr training"
+          data-company="bnsf railway">
+        <td class="score-cell">
+          <span class="score score-high">93</span>
+          <div class="score-breakdown">AI:78 / R:+15</div>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.linkedin.com/jobs/view/mgr-org-development-rr-training-at-bnsf-railway-4464107759" target="_blank" rel="noopener">Mgr Org Development - RR Training</a>
+          </div>
+          <div class="company-name">BNSF Railway</div>
+        </td>
+        <td>
+          Overland Park, KS
+          
+        </td>
+        <td>$110,430 - $122,700</td>
+        <td><span class="badge badge-default">linkedin_rss</span></td>
+        <td>
+          
+            <span class="badge badge-green">+5 Salary ≥$80k ($110,430)</span>
+          
+            <span class="badge badge-green">+5 Train-the-Trainer / go-live support</span>
+          
+            <span class="badge badge-green">+5 ADDIE / instructional design methodology</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">78/100</span>
+          
+          <div class="rationale">Kelly&#39;s 18+ years of instructional design, training delivery, and organizational change experience directly align with the role&#39;s core responsibilities. Strong match on needs assessment, vendor management, budget oversight, and train-the-trainer support. Minor gaps: no explicit mention of digital.ai</div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="90"
+          data-fit="85"
+          data-salary="108173"
+          data-site="linkedin_rss"
+          data-remote="false"
+          data-title="it specialist (training, communications &amp; change management) - office of the chief information officer"
+          data-company="gsa">
+        <td class="score-cell">
+          <span class="score score-high">90</span>
+          <div class="score-breakdown">AI:85 / R:+5</div>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.linkedin.com/jobs/view/it-specialist-training-communications-change-management-office-of-the-chief-information-officer-at-gsa-4464602943" target="_blank" rel="noopener">IT Specialist (Training, Communications &amp; Change Management) - Office of the Chief Information Officer</a>
+          </div>
+          <div class="company-name">GSA</div>
+        </td>
+        <td>
+          Kansas City, MO
+          
+        </td>
+        <td>$108,173</td>
+        <td><span class="badge badge-default">linkedin_rss</span></td>
+        <td>
+          
+            <span class="badge badge-green">+10 OCM / change management required</span>
+          
+            <span class="badge badge-green">+5 Salary ≥$80k ($108,173)</span>
+          
+            <span class="badge badge-red">-10 No eLearning or ID tools mentioned</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">85/100</span>
+          
+          <div class="rationale">Kelly&#39;s 18+ years in instructional design, training delivery, change management, and OCM directly align with the role&#39;s core duties. Strong expertise in technical training, communications planning, LMS administration, and data analysis of training metrics, plus relevant certifications (Change Manage</div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="85"
+          data-fit="85"
+          data-salary="70000"
+          data-site="linkedin_rss"
+          data-remote="false"
+          data-title="learning management system specialist"
+          data-company="children’s hospital association">
+        <td class="score-cell">
+          <span class="score score-high">85</span>
+          <div class="score-breakdown">AI:85 / R:0</div>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.linkedin.com/jobs/view/learning-management-system-specialist-at-children%E2%80%99s-hospital-association-4464663246" target="_blank" rel="noopener">Learning Management System Specialist</a>
+          </div>
+          <div class="company-name">Children’s Hospital Association</div>
+        </td>
+        <td>
+          Lenexa, KS
+          
+        </td>
+        <td>$70,000</td>
+        <td><span class="badge badge-default">linkedin_rss</span></td>
+        <td>
+          
+            <span class="badge badge-green">+10 Enterprise software (LMS/ERP)</span>
+          
+            <span class="badge badge-red">-15 Salary &lt;$80k ($70,000)</span>
+          
+            <span class="badge badge-green">+5 ADDIE / instructional design methodology</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">85/100</span>
+          
+          <div class="rationale">Kelly is a strong match with 18+ years of instructional design and learning technology experience, including direct LMS administration (Saba Cloud), content management, reporting, and stakeholder collaboration. She exceeds the 3-year LMS requirement and has demonstrated expertise in adult learning t</div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="85"
+          data-fit="72"
+          data-salary="110000"
+          data-site="linkedin_rss"
+          data-remote="false"
+          data-title="lead specialist, solutioning at pearson — topeka, ks"
+          data-company="">
+        <td class="score-cell">
+          <span class="score score-high">85</span>
+          <div class="score-breakdown">AI:72 / R:+13</div>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.linkedin.com/jobs/view/lead-specialist-solutioning-at-pearson-4461375517" target="_blank" rel="noopener">Lead Specialist, Solutioning at Pearson — Topeka, KS</a>
+          </div>
+          <div class="company-name"></div>
+        </td>
+        <td>
+          
+          
+        </td>
+        <td>$110,000</td>
+        <td><span class="badge badge-default">linkedin_rss</span></td>
+        <td>
+          
+            <span class="badge badge-green">+8 Senior/lead/consultant title</span>
+          
+            <span class="badge badge-green">+5 Salary ≥$80k ($110,000)</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">72/100</span>
+          
+          <div class="rationale">Kelly has strong L&amp;D consulting, ILT/VILT design, and enterprise training experience with relevant certifications and a decade+ track record. However, the role emphasizes solution architecture, consultative selling, and cross-functional solutioning leadership—areas where Kelly&#39;s resume shows executi</div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="82"
+          data-fit="72"
+          data-salary="0"
+          data-site="linkedin_rss"
+          data-remote="false"
+          data-title="employee development coordinator"
+          data-company="terracon">
+        <td class="score-cell">
+          <span class="score score-high">82</span>
+          <div class="score-breakdown">AI:72 / R:+10</div>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.linkedin.com/jobs/view/employee-development-coordinator-at-terracon-4464373060" target="_blank" rel="noopener">Employee Development Coordinator</a>
+          </div>
+          <div class="company-name">Terracon</div>
+        </td>
+        <td>
+          Olathe, KS
+          
+        </td>
+        <td>—</td>
+        <td><span class="badge badge-default">linkedin_rss</span></td>
+        <td>
+          
+            <span class="badge badge-green">+10 Enterprise software (LMS/ERP)</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">72/100</span>
+          
+          <div class="rationale">Kelly has strong LMS administration, training coordination, and content development experience from Terracon itself, plus 18+ years of instructional design expertise. However, the role emphasizes administrative/coordinator-level duties (scheduling, logistics, AP processing, travel coordination) rath</div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="82"
+          data-fit="82"
+          data-salary="59500"
+          data-site="linkedin_rss"
+          data-remote="false"
+          data-title="curriculum development specialist"
+          data-company="performance contracting, inc. (pci)">
+        <td class="score-cell">
+          <span class="score score-high">82</span>
+          <div class="score-breakdown">AI:82 / R:0</div>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.linkedin.com/jobs/view/curriculum-development-specialist-at-performance-contracting-inc-pci-4436149770" target="_blank" rel="noopener">Curriculum Development Specialist</a>
+          </div>
+          <div class="company-name">Performance Contracting, Inc. (PCI)</div>
+        </td>
+        <td>
+          Lenexa, KS
+          
+        </td>
+        <td>$59,500 - $80,000</td>
+        <td><span class="badge badge-default">linkedin_rss</span></td>
+        <td>
+          
+            <span class="badge badge-green">+10 Authoring tools (Articulate/Adobe/Camtasia)</span>
+          
+            <span class="badge badge-red">-15 Salary &lt;$80k ($59,500)</span>
+          
+            <span class="badge badge-green">+5 ADDIE / instructional design methodology</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">82/100</span>
+          
+          <div class="rationale">Kelly is a strong match with 18+ years of instructional design experience, proven expertise in curriculum development (ADDIE methodology), mastery of required tools (Articulate 360, Adobe Creative Suite, Camtasia), LMS administration, and demonstrated project management skills across multiple large-</div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="72"
+          data-fit="72"
+          data-salary="0"
+          data-site="linkedin_rss"
+          data-remote="false"
+          data-title="tools &amp; implementation specialist"
+          data-company="black &amp; veatch">
+        <td class="score-cell">
+          <span class="score score-mid">72</span>
+          <div class="score-breakdown">AI:72 / R:0</div>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.linkedin.com/jobs/view/tools-implementation-specialist-at-black-veatch-4418477440" target="_blank" rel="noopener">Tools &amp; Implementation Specialist</a>
+          </div>
+          <div class="company-name">Black &amp; Veatch</div>
+        </td>
+        <td>
+          Overland Park, KS
+          
+        </td>
+        <td>—</td>
+        <td><span class="badge badge-default">linkedin_rss</span></td>
+        <td>
+          
+            <span class="badge badge-default">—</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">72/100</span>
+          
+          <div class="rationale">Kelly has strong instructional design, training delivery, and LMS expertise with proven enterprise-scale implementation experience. However, the role requires deep construction-specific knowledge (AWP/WFP, InEight Plan &amp; Progress, Procore) and field operations familiarity that aren&#39;t evident in her </div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="72"
+          data-fit="72"
+          data-salary="70000"
+          data-site="linkedin_rss"
+          data-remote="false"
+          data-title="learning content creator"
+          data-company="hill&#39;s pet nutrition">
+        <td class="score-cell">
+          <span class="score score-mid">72</span>
+          <div class="score-breakdown">AI:72 / R:0</div>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.linkedin.com/jobs/view/learning-content-creator-at-hill-s-pet-nutrition-4444602588" target="_blank" rel="noopener">Learning Content Creator</a>
+          </div>
+          <div class="company-name">Hill&#39;s Pet Nutrition</div>
+        </td>
+        <td>
+          Emporia, KS
+          
+        </td>
+        <td>$70,000 - $96,000</td>
+        <td><span class="badge badge-default">linkedin_rss</span></td>
+        <td>
+          
+            <span class="badge badge-green">+10 Authoring tools (Articulate/Adobe/Camtasia)</span>
+          
+            <span class="badge badge-red">-15 Salary &lt;$80k ($70,000)</span>
+          
+            <span class="badge badge-green">+5 ADDIE / instructional design methodology</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">72/100</span>
+          
+          <div class="rationale">Kelly has strong instructional design credentials, multimedia production tools expertise (Adobe Creative Suite, Camtasia), and 18+ years of relevant experience building training content. However, the role emphasizes hands-on creative production (filming, lighting, audio engineering, video editing) a</div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="72"
+          data-fit="72"
+          data-salary="0"
+          data-site="linkedin_rss"
+          data-remote="false"
+          data-title="avp, academy cohort leader"
+          data-company="arch insurance group inc.">
+        <td class="score-cell">
+          <span class="score score-mid">72</span>
+          <div class="score-breakdown">AI:72 / R:0</div>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.linkedin.com/jobs/view/avp-academy-cohort-leader-at-arch-insurance-group-inc-4451259256" target="_blank" rel="noopener">AVP, Academy Cohort Leader</a>
+          </div>
+          <div class="company-name">Arch Insurance Group Inc.</div>
+        </td>
+        <td>
+          Kansas City, MO
+          
+        </td>
+        <td>—</td>
+        <td><span class="badge badge-default">linkedin_rss</span></td>
+        <td>
+          
+            <span class="badge badge-default">—</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">72/100</span>
+          
+          <div class="rationale">Kelly has strong instructional design, learning program development, and cohort training delivery experience with proven track records in enterprise onboarding and go-live support. However, the role requires deep underwriting domain expertise and direct people management/coaching accountability for </div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="72"
+          data-fit="72"
+          data-salary="0"
+          data-site="linkedin_rss"
+          data-remote="false"
+          data-title="us training manager - operations &amp; production at wireco — leawood, ks"
+          data-company="">
+        <td class="score-cell">
+          <span class="score score-mid">72</span>
+          <div class="score-breakdown">AI:72 / R:0</div>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.linkedin.com/jobs/view/us-training-manager-operations-production-at-wireco-4460750547" target="_blank" rel="noopener">US Training Manager - Operations &amp; Production at WireCo — Leawood, KS</a>
+          </div>
+          <div class="company-name"></div>
+        </td>
+        <td>
+          
+          
+        </td>
+        <td>—</td>
+        <td><span class="badge badge-default">linkedin_rss</span></td>
+        <td>
+          
+            <span class="badge badge-default">—</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">72/100</span>
+          
+          <div class="rationale">Kelly has strong instructional design, training delivery, and organizational change management expertise with 18+ years experience and relevant certifications. However, the role emphasizes production/manufacturing operations training, hourly workforce development, and cross-training matrices—areas w</div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="72"
+          data-fit="62"
+          data-salary="0"
+          data-site="linkedin_rss"
+          data-remote="false"
+          data-title="aviation instructional designer 2"
+          data-company="garmin">
+        <td class="score-cell">
+          <span class="score score-mid">72</span>
+          <div class="score-breakdown">AI:62 / R:+10</div>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.linkedin.com/jobs/view/aviation-instructional-designer-2-at-garmin-4463102261" target="_blank" rel="noopener">Aviation Instructional Designer 2</a>
+          </div>
+          <div class="company-name">Garmin</div>
+        </td>
+        <td>
+          Olathe, KS
+          
+        </td>
+        <td>—</td>
+        <td><span class="badge badge-default">linkedin_rss</span></td>
+        <td>
+          
+            <span class="badge badge-green">+5 Primary title (ID/OCM/eLearning focus)</span>
+          
+            <span class="badge badge-green">+5 ADDIE / instructional design methodology</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">62/100</span>
+          
+          <div class="rationale">Kelly has strong instructional design credentials, ADDIE expertise, and 18+ years experience with eLearning development and adult training. However, the role requires specific aviation industry experience (pilot, flight instructor, maintenance, or avionics background) that is not evident in her resu</div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="72"
+          data-fit="72"
+          data-salary="0"
+          data-site="linkedin_rss"
+          data-remote="false"
+          data-title="nuclear training manager at black &amp; veatch — overland park, ks"
+          data-company="">
+        <td class="score-cell">
+          <span class="score score-mid">72</span>
+          <div class="score-breakdown">AI:72 / R:0</div>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.linkedin.com/jobs/view/nuclear-training-manager-at-black-veatch-4418468765" target="_blank" rel="noopener">Nuclear Training Manager at Black &amp; Veatch — Overland Park, KS</a>
+          </div>
+          <div class="company-name"></div>
+        </td>
+        <td>
+          
+          
+        </td>
+        <td>—</td>
+        <td><span class="badge badge-default">linkedin_rss</span></td>
+        <td>
+          
+            <span class="badge badge-default">—</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">72/100</span>
+          
+          <div class="rationale">Kelly has strong instructional design fundamentals, enterprise training delivery experience, and LMS expertise that align well with core training manager responsibilities. However, the role requires nuclear industry-specific expertise and regulatory compliance knowledge (NRC, nuclear qualification p</div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="62"
+          data-fit="72"
+          data-salary="0"
+          data-site="linkedin_rss"
+          data-remote="false"
+          data-title="technical learning specialist ii 2nd shift at kansas city national security campus — kansas city, mo"
+          data-company="">
+        <td class="score-cell">
+          <span class="score score-mid">62</span>
+          <div class="score-breakdown">AI:72 / R:-10</div>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.linkedin.com/jobs/view/technical-learning-specialist-ii-2nd-shift-at-kansas-city-national-security-campus-4461318322" target="_blank" rel="noopener">Technical Learning Specialist II 2nd Shift at Kansas City National Security Campus — Kansas City, MO</a>
+          </div>
+          <div class="company-name"></div>
+        </td>
+        <td>
+          
+          
+        </td>
+        <td>—</td>
+        <td><span class="badge badge-default">linkedin_rss</span></td>
+        <td>
+          
+            <span class="badge badge-red">-10 No eLearning or ID tools mentioned</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">72/100</span>
+          
+          <div class="rationale">Kelly has strong instructional design and training facilitation expertise with 18+ years experience, relevant certifications (Change Management, SAFe), and proven ability to design, develop, and deliver training at scale. However, she lacks specific experience with required technical systems (Solumi</div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="62"
+          data-fit="72"
+          data-salary="67618"
+          data-site="linkedin_rss"
+          data-remote="false"
+          data-title="sales instructor-west"
+          data-company="heartland coca-cola">
+        <td class="score-cell">
+          <span class="score score-mid">62</span>
+          <div class="score-breakdown">AI:72 / R:-10</div>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.linkedin.com/jobs/view/sales-instructor-west-at-heartland-coca-cola-4462320516" target="_blank" rel="noopener">Sales Instructor-West</a>
+          </div>
+          <div class="company-name">Heartland Coca-Cola</div>
+        </td>
+        <td>
+          Lenexa, KS
+          
+        </td>
+        <td>$67,618 - $79,550</td>
+        <td><span class="badge badge-default">linkedin_rss</span></td>
+        <td>
+          
+            <span class="badge badge-red">-15 Salary &lt;$80k ($67,618)</span>
+          
+            <span class="badge badge-green">+5 ADDIE / instructional design methodology</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">72/100</span>
+          
+          <div class="rationale">Kelly has strong instructional design expertise, proven training delivery (ILT/VILT), facilitation skills, and relevant certifications. However, she lacks direct sales experience (required minimum 5 years) and her background is primarily in compliance/system training rather than sales enablement, cr</div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="62"
+          data-fit="72"
+          data-salary="67618"
+          data-site="linkedin_rss"
+          data-remote="false"
+          data-title="sales instructor-west at heartland coca-cola — lenexa, ks"
+          data-company="">
+        <td class="score-cell">
+          <span class="score score-mid">62</span>
+          <div class="score-breakdown">AI:72 / R:-10</div>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.linkedin.com/jobs/view/sales-instructor-west-at-heartland-coca-cola-4461694744" target="_blank" rel="noopener">Sales Instructor-West at Heartland Coca-Cola — Lenexa, KS</a>
+          </div>
+          <div class="company-name"></div>
+        </td>
+        <td>
+          
+          
+        </td>
+        <td>$67,618 - $79,550</td>
+        <td><span class="badge badge-default">linkedin_rss</span></td>
+        <td>
+          
+            <span class="badge badge-red">-15 Salary &lt;$80k ($67,618)</span>
+          
+            <span class="badge badge-green">+5 ADDIE / instructional design methodology</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">72/100</span>
+          
+          <div class="rationale">Kelly has strong instructional design and training delivery expertise with 18+ years experience, proven ability to develop training materials and conduct both ILT/VILT sessions, and relevant certifications. However, the role requires a minimum 5 years of direct sales experience (preferred in beverag</div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="60"
+          data-fit="72"
+          data-salary="70100"
+          data-site="linkedin_rss"
+          data-remote="false"
+          data-title="sr principal product trainer/ principal product trainer"
+          data-company="northrop grumman">
+        <td class="score-cell">
+          <span class="score score-mid">60</span>
+          <div class="score-breakdown">AI:72 / R:-12</div>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.linkedin.com/jobs/view/sr-principal-product-trainer-principal-product-trainer-at-northrop-grumman-4463128848" target="_blank" rel="noopener">Sr Principal Product Trainer/ Principal Product Trainer</a>
+          </div>
+          <div class="company-name">Northrop Grumman</div>
+        </td>
+        <td>
+          Whiteman AFB, MO
+          
+        </td>
+        <td>$70,100 - $105,100</td>
+        <td><span class="badge badge-default">linkedin_rss</span></td>
+        <td>
+          
+            <span class="badge badge-green">+8 Senior/lead/consultant title</span>
+          
+            <span class="badge badge-red">-15 Salary &lt;$80k ($70,100)</span>
+          
+            <span class="badge badge-green">+5 ADDIE / instructional design methodology</span>
+          
+            <span class="badge badge-red">-10 No eLearning or ID tools mentioned</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">72/100</span>
+          
+          <div class="rationale">Kelly has strong instructional design expertise, curriculum development, and project management skills matching core job requirements. However, she lacks military/aerospace domain experience, B-2 or complex systems training background, and the specific graduate coursework in instructional methodolog</div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="55"
+          data-fit="35"
+          data-salary="0"
+          data-site="linkedin_rss"
+          data-remote="false"
+          data-title="instructional designer at ncm associates — kansas city, mo"
+          data-company="">
+        <td class="score-cell">
+          <span class="score score-low">55</span>
+          <div class="score-breakdown">AI:35 / R:+20</div>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.linkedin.com/jobs/view/instructional-designer-at-ncm-associates-4462406918" target="_blank" rel="noopener">Instructional Designer at NCM Associates — Kansas City, MO</a>
+          </div>
+          <div class="company-name"></div>
+        </td>
+        <td>
+          
+          
+        </td>
+        <td>—</td>
+        <td><span class="badge badge-default">linkedin_rss</span></td>
+        <td>
+          
+            <span class="badge badge-green">+10 Enterprise software (LMS/ERP)</span>
+          
+            <span class="badge badge-green">+5 Primary title (ID/OCM/eLearning focus)</span>
+          
+            <span class="badge badge-green">+5 ADDIE / instructional design methodology</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">35/100</span>
+          
+          <div class="rationale">Kelly&#39;s 18+ years of advanced ID experience, mastery of ADDIE, and extensive enterprise training background significantly exceed the entry-level requirements (0-2 years). While she has relevant skills in content development, LMS management, and SME collaboration, the role explicitly targets early-ca</div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="52"
+          data-fit="62"
+          data-salary="0"
+          data-site="linkedin_rss"
+          data-remote="false"
+          data-title="customer training specialist"
+          data-company="vincue">
+        <td class="score-cell">
+          <span class="score score-low">52</span>
+          <div class="score-breakdown">AI:62 / R:-10</div>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.linkedin.com/jobs/view/customer-training-specialist-at-vincue-4465012912" target="_blank" rel="noopener">Customer Training Specialist</a>
+          </div>
+          <div class="company-name">VINCUE</div>
+        </td>
+        <td>
+          Kansas City Metropolitan Area
+          
+        </td>
+        <td>—</td>
+        <td><span class="badge badge-default">linkedin_rss</span></td>
+        <td>
+          
+            <span class="badge badge-red">-10 No eLearning or ID tools mentioned</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">62/100</span>
+          
+          <div class="rationale">Kelly has strong instructional design, training delivery, and cross-functional collaboration experience with proven adoption and engagement improvements. However, the role requires automotive retail/SaaS vendor experience (explicitly stated as required), which is not present in her background—her ex</div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="52"
+          data-fit="72"
+          data-salary="0"
+          data-site="linkedin_rss"
+          data-remote="false"
+          data-title="dental training manager"
+          data-company="aria care partners">
+        <td class="score-cell">
+          <span class="score score-low">52</span>
+          <div class="score-breakdown">AI:72 / R:-20</div>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.linkedin.com/jobs/view/dental-training-manager-at-aria-care-partners-4462891943" target="_blank" rel="noopener">Dental Training Manager</a>
+          </div>
+          <div class="company-name">Aria Care Partners</div>
+        </td>
+        <td>
+          Overland Park, KS
+          
+        </td>
+        <td>—</td>
+        <td><span class="badge badge-default">linkedin_rss</span></td>
+        <td>
+          
+            <span class="badge badge-green">+10 OCM / change management required</span>
+          
+            <span class="badge badge-red">-20 HR generalist (no L&amp;D focus)</span>
+          
+            <span class="badge badge-red">-10 No eLearning or ID tools mentioned</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">72/100</span>
+          
+          <div class="rationale">Kelly has strong instructional design, training program development, and LMS expertise with 18+ years experience and relevant certifications. However, the role emphasizes dental operations knowledge, direct management of a Dental Systems Trainer, and healthcare-specific content (gaps in Kelly&#39;s back</div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="47"
+          data-fit="52"
+          data-salary="75000"
+          data-site="linkedin_rss"
+          data-remote="true"
+          data-title="sales trainer - remote at ryder system, inc. — topeka, ks"
+          data-company="">
+        <td class="score-cell">
+          <span class="score score-low">47</span>
+          <div class="score-breakdown">AI:52 / R:-5</div>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.linkedin.com/jobs/view/sales-trainer-remote-at-ryder-system-inc-4460662093" target="_blank" rel="noopener">Sales Trainer - REMOTE at Ryder System, Inc. — Topeka, KS</a>
+          </div>
+          <div class="company-name"></div>
+        </td>
+        <td>
+          
+          <br><span class="badge badge-green">Remote/Hybrid</span>
+        </td>
+        <td>$75,000</td>
+        <td><span class="badge badge-default">linkedin_rss</span></td>
+        <td>
+          
+            <span class="badge badge-green">+5 Remote or hybrid offered</span>
+          
+            <span class="badge badge-red">-15 Salary &lt;$80k ($75,000)</span>
+          
+            <span class="badge badge-green">+5 ADDIE / instructional design methodology</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">52/100</span>
+          
+          <div class="rationale">Kelly has strong instructional design, training delivery, and coaching experience with relevant tools (Teams, Articulate) and adult learning expertise. However, she lacks the required 7+ years of direct sales or account manager experience in a multi-channel business environment, which is explicitly </div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="45"
+          data-fit="45"
+          data-salary="0"
+          data-site="linkedin_rss"
+          data-remote="false"
+          data-title="learning and development specialist at johnsonville — holton, ks"
+          data-company="">
+        <td class="score-cell">
+          <span class="score score-low">45</span>
+          <div class="score-breakdown">AI:45 / R:0</div>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.linkedin.com/jobs/view/learning-and-development-specialist-at-johnsonville-4463150181" target="_blank" rel="noopener">Learning and Development Specialist at Johnsonville — Holton, KS</a>
+          </div>
+          <div class="company-name"></div>
+        </td>
+        <td>
+          
+          
+        </td>
+        <td>—</td>
+        <td><span class="badge badge-default">linkedin_rss</span></td>
+        <td>
+          
+            <span class="badge badge-default">—</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">45/100</span>
+          
+          <div class="rationale">Kelly has strong instructional design and training expertise with proven track record in onboarding and enterprise training, but lacks required food manufacturing experience, Spanish bilingual requirement, and familiarity with manufacturing-specific platforms like Redzone. The role is more operation</div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="40"
+          data-fit="35"
+          data-salary="0"
+          data-site="linkedin_rss"
+          data-remote="false"
+          data-title="ev service technical trainer"
+          data-company="orange ev">
+        <td class="score-cell">
+          <span class="score score-low">40</span>
+          <div class="score-breakdown">AI:35 / R:+5</div>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.linkedin.com/jobs/view/ev-service-technical-trainer-at-orange-ev-4459595648" target="_blank" rel="noopener">EV Service Technical Trainer</a>
+          </div>
+          <div class="company-name">Orange EV</div>
+        </td>
+        <td>
+          Kansas City, KS
+          
+        </td>
+        <td>—</td>
+        <td><span class="badge badge-default">linkedin_rss</span></td>
+        <td>
+          
+            <span class="badge badge-green">+5 ADDIE / instructional design methodology</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">35/100</span>
+          
+          <div class="rationale">Kelly has strong instructional design, training delivery, and curriculum development expertise with 18+ years experience and ADDIE certification, which are valuable. However, the role requires 5+ years of hands-on vehicle electrical systems, EV diagnostics, or Class 8 truck technical experience—Kell</div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="35"
+          data-fit="35"
+          data-salary="0"
+          data-site="linkedin_rss"
+          data-remote="false"
+          data-title="professional learning specialist, kansas city or phoenix"
+          data-company="ixl learning">
+        <td class="score-cell">
+          <span class="score score-low">35</span>
+          <div class="score-breakdown">AI:35 / R:0</div>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.linkedin.com/jobs/view/professional-learning-specialist-kansas-city-or-phoenix-at-ixl-learning-4452742089" target="_blank" rel="noopener">Professional Learning Specialist, Kansas City or Phoenix</a>
+          </div>
+          <div class="company-name">IXL Learning</div>
+        </td>
+        <td>
+          Kansas City, MO
+          
+        </td>
+        <td>—</td>
+        <td><span class="badge badge-default">linkedin_rss</span></td>
+        <td>
+          
+            <span class="badge badge-default">—</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">35/100</span>
+          
+          <div class="rationale">Kelly has strong instructional design expertise and training delivery experience, but lacks the 5+ years of K-12 teaching experience that is a core requirement. Her background is primarily in corporate/enterprise training rather than K-12 education, and there&#39;s no evidence of classroom teaching or d</div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="25"
+          data-fit="35"
+          data-salary="0"
+          data-site="linkedin_rss"
+          data-remote="false"
+          data-title="instructor"
+          data-company="the university of kansas">
+        <td class="score-cell">
+          <span class="score score-low">25</span>
+          <div class="score-breakdown">AI:35 / R:-10</div>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.linkedin.com/jobs/view/instructor-at-the-university-of-kansas-4463115506" target="_blank" rel="noopener">Instructor</a>
+          </div>
+          <div class="company-name">The University of Kansas</div>
+        </td>
+        <td>
+          Lawrence, KS
+          
+        </td>
+        <td>—</td>
+        <td><span class="badge badge-default">linkedin_rss</span></td>
+        <td>
+          
+            <span class="badge badge-red">-10 No eLearning or ID tools mentioned</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">35/100</span>
+          
+          <div class="rationale">Kelly&#39;s background is primarily in instructional design, learning technology, and organizational change management rather than subject-matter instruction in applied behavioral science. While she has 18+ years of experience and strong instructional development credentials, she lacks the required adva</div>
+          
+        </td>
+      </tr>
+      
+      <tr class="job-row"
+          data-score="10"
+          data-fit="35"
+          data-salary="82600"
+          data-site="linkedin_rss"
+          data-remote="false"
+          data-title="ai design facilitator and forward-deployed engineer ii at deloitte — kansas city, mo"
+          data-company="">
+        <td class="score-cell">
+          <span class="score score-low">10</span>
+          <div class="score-breakdown">AI:35 / R:-25</div>
+        </td>
+        <td>
+          <div class="job-title">
+            <a href="https://www.linkedin.com/jobs/view/ai-design-facilitator-and-forward-deployed-engineer-ii-at-deloitte-4444306375" target="_blank" rel="noopener">AI Design Facilitator and Forward-Deployed Engineer II at Deloitte — Kansas City, MO</a>
+          </div>
+          <div class="company-name"></div>
+        </td>
+        <td>
+          
+          
+        </td>
+        <td>$82,600</td>
+        <td><span class="badge badge-default">linkedin_rss</span></td>
+        <td>
+          
+            <span class="badge badge-green">+5 Salary ≥$80k ($82,600)</span>
+          
+            <span class="badge badge-red">-20 HR generalist (no L&amp;D focus)</span>
+          
+            <span class="badge badge-red">-10 No eLearning or ID tools mentioned</span>
+          
+        </td>
+        <td>
+          <span class="claude-score">35/100</span>
+          
+          <div class="rationale">Kelly has strong instructional design, training delivery, and organizational change management expertise, but lacks the core requirements: no demonstrated user research, UX design, human-centered design background, or hands-on generative AI development experience. The role fundamentally requires a d</div>
+          
+        </td>
+      </tr>
+      
+      </tbody>
+    </table>
+  </div>
+</main>
+<script nonce="bdbf9ac3cc107d21bacaefbae6daa75c">
+(function () {
+  const tbody = document.getElementById('jobs-body');
+  let rows = [...tbody.querySelectorAll('.job-row')];
+  let sortCol = 'score', sortAsc = false;
+
+  function applyAll() {
+    const text = document.getElementById('filter-text').value.toLowerCase();
+    const site = document.getElementById('filter-site').value;
+    const remote = document.getElementById('filter-remote').value;
+    const minScore = parseFloat(document.getElementById('filter-score').value) || -Infinity;
+
+    rows.forEach(r => {
+      const visible =
+        (!text || r.dataset.title.includes(text) || r.dataset.company.includes(text)) &&
+        (!site || r.dataset.site === site) &&
+        (!remote || r.dataset.remote === remote) &&
+        parseFloat(r.dataset.score) >= minScore;
+      r.classList.toggle('hidden', !visible);
+    });
+  }
+
+  function sortRows(col) {
+    if (sortCol === col) { sortAsc = !sortAsc; } else { sortCol = col; sortAsc = false; }
+    rows.sort((a, b) => {
+      let va = a.dataset[col], vb = b.dataset[col];
+      if (col !== 'title') { va = parseFloat(va) || 0; vb = parseFloat(vb) || 0; }
+      if (va < vb) return sortAsc ? -1 : 1;
+      if (va > vb) return sortAsc ? 1 : -1;
+      return 0;
+    });
+    rows.forEach(r => tbody.appendChild(r));
+  }
+
+  ['filter-text', 'filter-site', 'filter-remote', 'filter-score'].forEach(id =>
+    document.getElementById(id).addEventListener('input', applyAll)
+  );
+  document.querySelectorAll('th[data-sort]').forEach(th =>
+    th.addEventListener('click', () => sortRows(th.dataset.sort))
+  );
+
+  sortRows('score');
+})();
+</script>
+</body>
+</html>
